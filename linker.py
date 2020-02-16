@@ -51,7 +51,7 @@ def main():
         add_files(script_dir, files)
 
     # add files specific to box in args
-    box_dir = os.path.join(conf_dir, args.environment, args.box)
+    box_dir = os.path.join(conf_dir, 'boxes', args.environment, args.box)
     add_files(box_dir, files)
 
     # remove files and create symlinks

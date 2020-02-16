@@ -11,7 +11,7 @@ positional arguments:
 
 optional arguments:
   -h, --help   show this help message and exit
-  --conf CONF  override default conf dir @ "/home/paul/feng-shui/conf"
+  --conf CONF  override default conf dir @ "/home/paul/feng-shui-py/conf"
   -g           apply global settings
   -f           do not prompt on remove/move step
   -b           create backup if file already exists
