@@ -104,6 +104,7 @@ def add_files(directory: str, files: list) -> None:
 
     Returns:
         None: files list is modified
+
     """
     if not os.path.isdir(directory):
         fatal('"%s" is not a dir' % directory)
@@ -123,6 +124,7 @@ def extension(file_path: str) -> str:
 
     Returns:
         str: File extension, including period.
+
     """
     _, extension = os.path.splitext(file_path)
     return extension
@@ -136,6 +138,7 @@ def prompt(message: str) -> bool:
 
     Returns:
         bool: Yes/No response from user.
+
     """
     yes_options = ['y', 'yes']
     no_options = ['n', 'no']
