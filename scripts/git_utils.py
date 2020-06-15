@@ -2,21 +2,42 @@
 
 import argparse
 import os
+import re
 import shlex
 import subprocess
+import webbrowser
 
+ORIGIN_NAME = 'origin'
+UPSTREAM_NAME = 'upstream'
 
 def main():
+
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
+
+    parser_pr = subparsers.add_parser('pull-request')
+    parser_pr.add_argument(
+        '--branch', type=str, required=True,
+        help='branch to merge into')
+    parser_pr.set_defaults(func=pull_request)
+
+    parser_browser = subparsers.add_parser('open-browser')
+    parser_browser.add_argument(
+        '--remote', type=str, required=True,
+        choices=[UPSTREAM_NAME, ORIGIN_NAME],
+        help='remote repo to open')
+    parser_browser.add_argument(
+        '--location', type=str, required=False, default='',
+        help='file or dir to open in browser')
+    parser_browser.set_defaults(func=open_browser)
 
     parser_sync = subparsers.add_parser('sync-upstream')
     parser_sync.add_argument(
         '--branch', type=str, required=True,
         help='branch to sync')
     parser_sync.add_argument(
-        '--location', type=str, required=True,
-        help='upstream location to sync from')
+        '--account', type=str, required=True,
+        help='upstream github account to sync from')
     parser_sync.set_defaults(func=sync_upstream)
 
     parser_rebase = subparsers.add_parser('rebase')
@@ -31,47 +52,66 @@ def main():
     args = parser.parse_args()
     if 'func' in args:
         try:
-            get_repo_name()
+            repo_name = get_repo_name()
         except subprocess.CalledProcessError as e:
             if 'not a git repository' not in e.stderr:
                 raise e
             _exit('current dir is not git repo')
-            raise e
-        args.func(args)
+        args.func(args, repo_name)
         print('Finished!')
     else:
         parser.print_help()
 
 
-def sync_upstream(args):
-    upstream_org = args.location
+def pull_request(args, repo_name):
     target_branch = args.branch
-    repo_name = get_repo_name()
+    branch_name = get_current_branch()
+    remotes = get_remotes()
+    remote_name = UPSTREAM_NAME if is_fork(remotes) else ORIGIN_NAME
+    target_account = remotes[remote_name]['push']['account']
+    origin_account = remotes[ORIGIN_NAME]['push']['account']
+    url = f'https://github.com/{target_account}/{repo_name}/compare/{target_branch}...{origin_account}:{branch_name}?expand=1'  # noqa:E501
+    webbrowser.open(url)
+
+
+def open_browser(args, repo_name):
+    current_branch = get_current_branch()
+    working_dir = get_repo_working_dir()
+    target_path = os.path.join(working_dir, args.location)
+    remotes = get_remotes()
+    target_account = remotes[args.remote]['push']['account']
+    url = f'https://github.com/{target_account}/{repo_name}/tree/{current_branch}/{target_path}'  # noqa:E501
+    webbrowser.open(url)
+
+
+def sync_upstream(args, repo_name):
+    upstream_location = f'git@github.com:{args.account}'
+    target_branch = args.branch
     start_branch = get_current_branch()
-    remote_name = 'upstream'
     try:
-        _run(f'git remote add {remote_name} {upstream_org}/{repo_name}.git')
+        _run(f'git remote add {UPSTREAM_NAME} {upstream_location}/{repo_name}.git')  # noqa:E501
     except subprocess.CalledProcessError as e:
         error = e.stderr.rstrip()
         if error != 'fatal: remote upstream already exists.':
             raise e
-    _run('git remote -v')
-    _run(f'git fetch {remote_name}')
+    get_remotes()
+    _run(f'git fetch {UPSTREAM_NAME}')
     checkout_branch(target_branch)
-    _run(f'git merge {remote_name}/{target_branch}')
-    checkout_branch(start_branch)
+    _run(f'git merge {UPSTREAM_NAME}/{target_branch}')
+    if start_branch != target_branch:
+        checkout_branch(start_branch)
 
 
-def force_push(args):
-    origin_name = get_origin_name()
+def force_push(args, repo_name):
+    origin_url = get_remote_url(ORIGIN_NAME, 'push')
     branch_name = get_current_branch()
-    if _query_yes_no(f'force push to {origin_name}?'):
-        _run(f'git push origin -f {branch_name}')
+    if _query_yes_no(f'force push to {origin_url}?'):
+        _run(f'git push {ORIGIN_NAME} -f {branch_name}')
     else:
         _exit('force push canceled')
 
 
-def rebase(args):
+def rebase(args, repo_name):
     target_branch = args.branch
     if is_rebase_active():
         _exit('rebase is already in progress')
@@ -110,8 +150,38 @@ def checkout_branch(branch_name):
     _run(f'git checkout {branch_name}')
 
 
-def get_origin_name():
-    result = _run('git remote get-url origin')
+def get_remote_url(remote_name, action):
+    remotes = get_remotes()
+    return remotes[remote_name][action]['url']
+
+
+def is_fork(remotes):
+    if UPSTREAM_NAME in remotes:
+        return remotes[UPSTREAM_NAME]['push'] != remotes[ORIGIN_NAME]['push']
+    return False
+
+
+def get_remotes():
+    remotes = {}
+    result = _run('git remote -v')
+    for line in result.stdout.rstrip().split('\n'):
+        parts = re.split('\t| ', line)
+        remote_name = parts[0]
+        remote_url = parts[1]
+        remote_action = parts[2].replace('(', '').replace(')', '')
+        if remote_name not in remotes:
+            remotes[remote_name] = {}
+        if remote_action not in remotes[remote_name]:
+            remotes[remote_name][remote_action] = ''
+        remotes[remote_name][remote_action] = {
+            'url': remote_url,
+            'account': re.split(':|/', remote_url)[1]
+        }
+    return remotes
+
+
+def get_repo_working_dir():
+    result = _run('git rev-parse --show-prefix')
     return result.stdout.rstrip()
 
 
