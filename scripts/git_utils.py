@@ -101,7 +101,7 @@ def sync_upstream(args, repo_name):
         _run(f'git fetch {UPSTREAM_NAME}')
     except subprocess.CalledProcessError as e:
         _run(f'git remote remove {UPSTREAM_NAME}')
-        _exit(f'unable to create {UPSTREAM_NAME} at {upstream_location}')
+        _exit(f'unable to fetch {UPSTREAM_NAME} at {upstream_location}')
     checkout_branch(target_branch)
     _run(f'git merge {UPSTREAM_NAME}/{target_branch}')
     if start_branch != target_branch:
