@@ -79,23 +79,29 @@ def open_browser(args, repo_name):
     working_dir = get_repo_working_dir()
     target_path = os.path.join(working_dir, args.location)
     remotes = get_remotes()
-    target_account = remotes[args.remote]['push']['account']
+    try:
+        target_account = remotes[args.remote]['push']['account']
+    except KeyError:
+        _exit(f'unable to find remote at {args.remote}')
     url = f'https://github.com/{target_account}/{repo_name}/tree/{current_branch}/{target_path}'  # noqa:E501
     webbrowser.open(url)
 
 
 def sync_upstream(args, repo_name):
-    upstream_location = f'git@github.com:{args.account}'
+    upstream_location = f'git@github.com:{args.account}/{repo_name}.git'
     target_branch = args.branch
+    remotes = get_remotes()
+    if upstream_location == remotes[ORIGIN_NAME]['push']['url']:
+        _exit(f'upstream identical to origin for {upstream_location}')
+    if UPSTREAM_NAME not in remotes:
+        _run(f'git remote add {UPSTREAM_NAME} {upstream_location}')
+        remotes = get_remotes()
     start_branch = get_current_branch()
     try:
-        _run(f'git remote add {UPSTREAM_NAME} {upstream_location}/{repo_name}.git')  # noqa:E501
+        _run(f'git fetch {UPSTREAM_NAME}')
     except subprocess.CalledProcessError as e:
-        error = e.stderr.rstrip()
-        if error != 'fatal: remote upstream already exists.':
-            raise e
-    get_remotes()
-    _run(f'git fetch {UPSTREAM_NAME}')
+        _run(f'git remote remove {UPSTREAM_NAME}')
+        _exit(f'unable to create {UPSTREAM_NAME} at {upstream_location}')
     checkout_branch(target_branch)
     _run(f'git merge {UPSTREAM_NAME}/{target_branch}')
     if start_branch != target_branch:
