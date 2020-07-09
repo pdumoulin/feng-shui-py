@@ -102,10 +102,24 @@ def sync_upstream(args, repo_name):
     except subprocess.CalledProcessError as e:
         _run(f'git remote remove {UPSTREAM_NAME}')
         _exit(f'unable to fetch {UPSTREAM_NAME} at {upstream_location}')
-    checkout_branch(target_branch)
+    stashed = False
+    if start_branch != target_branch:
+        try:
+            checkout_branch(target_branch)
+        except subprocess.CalledProcessError as e:
+            error = e.stderr.rstrip()
+            if error.startswith('error: Your local changes to the following files would be overwritten by checkout'):  # noqa:E501
+                if _query_yes_no('stash modified files and continue?'):
+                    _run('git stash')
+                    stashed = True
+                    checkout_branch(target_branch)
+            else:
+                raise e
     _run(f'git merge {UPSTREAM_NAME}/{target_branch}')
     if start_branch != target_branch:
         checkout_branch(start_branch)
+    if stashed:
+        _run('git stash pop')
 
 
 def force_push(args, repo_name):
