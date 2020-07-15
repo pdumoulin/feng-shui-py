@@ -145,9 +145,9 @@ def rebase(args, repo_name):
     _run(f'git rebase -i {target_branch}', None, None)
     if is_rebase_active():
         _run('git rebase --abort')
-        if stashed:
-            _run('git stash pop')
-        _exit('rebase did not complete')
+    if stashed:
+        _run('git stash pop')
+    _exit('rebase did not complete')
 
 
 def is_dirty():
