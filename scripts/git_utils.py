@@ -142,14 +142,22 @@ def rebase(args, repo_name):
             stashed = True
         else:
             _exit('working directory is dirty and changes not stashed')
-    _run(f'git rebase -i {target_branch}', None, None)
-    rebase_error = is_rebase_active()
-    if rebase_error:
-        _run('git rebase --abort')
-    if stashed:
-        _run('git stash pop')
-    if rebase_error:
-        _exit('rebase did not complete')
+    try:
+        _run(f'git rebase -i {target_branch}', None, None)
+    except subprocess.CalledProcessError as e:
+        if _query_yes_no('rebase failed! abort?', default='no'):
+            _run('git rebase --abort')
+            if stashed:
+                _run('git stash pop')
+        else:
+            _run('git status')
+            print('1. Resolve conflicts in "Unmerged paths" file list')
+            print('2. $ git add <conflict-files>')
+            print('3. $ git rebase --continue')
+            print('Start over using $ git rebase --abort')
+            if stashed:
+                print('Warning: you have stashed changes!')
+        _exit('rebase did not complete!')
 
 
 def is_dirty():
