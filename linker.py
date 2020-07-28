@@ -108,7 +108,7 @@ def add_files(directory: str, files: list) -> None:
     """
     if not os.path.isdir(directory):
         fatal('"%s" is not a dir' % directory)
-    ignore_extensions = ['.swp', '.swo', '.bk']
+    ignore_extensions = ['.swp', '.swo', '.bk', '.txt']
     files += [
         (directory, x)
         for x in os.listdir(directory)
