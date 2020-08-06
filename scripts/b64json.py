@@ -11,4 +11,4 @@ for line in [x for x in sys.stdin]:
     print(line)
     print('--------')
     output = json.loads(base64.b64decode(line).decode('utf-8'))
-    print(pprint.pprint(output))
+    pprint.pprint(output)
