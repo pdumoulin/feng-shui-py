@@ -5,8 +5,8 @@
 import base64
 import json
 import pprint
-import traceback
 import sys
+import traceback
 
 for line in [x for x in sys.stdin]:
     print(line)
