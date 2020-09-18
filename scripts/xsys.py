@@ -18,18 +18,18 @@ commands = {
     }
 }
 options = commands.keys()
+options_str = '|'.join(options)
 
 # operating system type identifier
 plat = platform.system().lower()
 
 # read in command name
 if len(sys.argv) == 1:
-    exit('ARGV[1] command missing!')
+    exit(f'ARGV[1] command must be one of "{options_str}"')
 command = sys.argv[1]
 
 # verify command is supported
 if command not in options:
-    options_str = '|'.join(options)
     exit(f'command "{command}" not in supported commands "{options_str}"!')
 
 # check if platform support command
