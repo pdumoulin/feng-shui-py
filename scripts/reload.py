@@ -28,21 +28,19 @@ if file_name.startswith(project_dir):
     project_location = os.path.join(project_dir, project_name)
 
     # determine what file to touch to trigger a reload
-    touch_files = {
-        'portal-api': 'platform.wsgi',
-        'default': 'src%sapp.py' % os.path.sep
-    }
-    reload_file_name = touch_files['default']\
-        if project_name not in touch_files.keys()\
-        else touch_files[project_name]
+    custom_touch_files = {}
+    default_file_name = os.path.join('src', 'app.py')
+    reload_file_name = custom_touch_files.get(project_name, default_file_name)
     reload_file_path = os.path.join(project_location, reload_file_name)
 
     # touch file to trigger app restart
     if os.path.isfile(reload_file_path):
-        call('touch %s' % (reload_file_path), shell=True)
+        call(f'touch {reload_file_path}', shell=True)
     else:
-        print('"%s" is not valid file' % reload_file_path)
+        print(f'{reload_file_path}" is not valid file')
+else:
+    print(f'File "{file_name}" not in "{project_dir}"')
 
-    # output on slow-ness
-    elapsed = time.time() - start_time
-    print('Took %s seconds' % elapsed)
+# output on slow-ness
+elapsed = time.time() - start_time
+print(f'Took {elapsed} seconds')
