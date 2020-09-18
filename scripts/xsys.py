@@ -13,7 +13,7 @@ commands = {
     },
     'paste': {
         'linux': 'xclip -o',
-        # 'darwin': 'pbpaste',
+        'darwin': 'pbpaste',
         'windows': 'paste'
     }
 }
