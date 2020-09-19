@@ -1,8 +1,9 @@
 """Cross platform command wrapper."""
 
 import platform
-import subprocess
 import sys
+
+import utils
 
 # configuration for mapping commands cross env
 commands = {
@@ -37,4 +38,4 @@ if plat not in commands[command]:
     exit(f'platform "{plat}" not supported for command "{command}"')
 
 # run the command
-subprocess.run(commands[command][plat])
+utils.cmd(commands[command][plat], stdout=None, stderr=None, verbose=False)
