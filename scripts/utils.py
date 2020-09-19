@@ -14,10 +14,15 @@ def cmd(
 
     Args:
         command (str): command to run
-        stdout: where to send stdout
-        stderr: where to send stderr
+        stdout (subprocess.PIPE): where to capture stdout
+        stderr (subprocess.PIPE): where to capture stderr
         verbose (bool): print command input and output
 
+    Returns:
+        subprocess.CompletedProcess
+
+    Raises:
+        subprocess.CalledProcessError
     """
     def vprint(string):
         if verbose:
@@ -40,7 +45,15 @@ def cmd(
 
 
 def query_yes_no(question, default='yes'):
-    """Query user for yes/no input."""
+    """Query user for yes/no input.
+
+    Args:
+        question (str): prompt for user
+        default (str): set option with if no user input
+
+    Returns:
+        bool: user selection
+    """
     valid = {
         'yes': True,
         'y': True,
