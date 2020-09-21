@@ -47,6 +47,9 @@ def main():
         help='branch to rebase on top of')
     parser_rebase.set_defaults(func=rebase)
 
+    parser_squash = subparsers.add_parser('squash')
+    parser_squash.set_defaults(func=squash)
+
     parser_force_push = subparsers.add_parser('force-push')
     parser_force_push.set_defaults(func=force_push)
 
@@ -132,6 +135,12 @@ def force_push(args, repo_name):
         _exit('force push canceled')
 
 
+def squash(args, repo_name):
+    result = utils.cmd('git rev-parse --short HEAD')
+    last_commit = result.stdout.rstrip()
+    utils.cmd(f'git commit -a -m "squash! {last_commit}"')
+
+
 def rebase(args, repo_name):
     target_branch = args.branch
     if is_rebase_active():
@@ -144,7 +153,7 @@ def rebase(args, repo_name):
         else:
             _exit('working directory is dirty and changes not stashed')
     try:
-        utils.cmd(f'git rebase -i {target_branch}', None, None)
+        utils.cmd(f'git rebase -i --autosquash {target_branch}', None, None)
     except subprocess.CalledProcessError as e:
         if utils.query_yes_no('rebase failed! abort?', default='no'):
             utils.cmd('git rebase --abort')
