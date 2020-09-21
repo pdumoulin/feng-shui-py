@@ -138,7 +138,10 @@ def force_push(args, repo_name):
 def squash(args, repo_name):
     result = utils.cmd('git rev-parse --short HEAD')
     last_commit = result.stdout.rstrip()
-    utils.cmd(f'git commit -a -m "squash! {last_commit}"')
+    try:
+        utils.cmd(f'git commit -a -m "squash! {last_commit}"')
+    except subprocess.CalledProcessError as e:
+        print(e.stdout)
 
 
 def rebase(args, repo_name):
