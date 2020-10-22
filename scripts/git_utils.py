@@ -13,7 +13,8 @@ UPSTREAM_NAME = 'upstream'
 
 def main():
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subparsers = parser.add_subparsers()
 
     parser_pr = subparsers.add_parser('pull-request')
