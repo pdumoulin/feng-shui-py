@@ -6,9 +6,8 @@ import csv
 import json
 import sys
 
-ids = set()
 filename = sys.argv[1]
 with open(filename, newline='') as csvfile:
     reader = csv.DictReader(csvfile)
     rows = [x for x in reader]
-print(json.dumps({'rows': rows}))
+    print(json.dumps({'rows': rows}))
