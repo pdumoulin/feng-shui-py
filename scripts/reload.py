@@ -1,46 +1,59 @@
 #!/usr/bin/python3
-
-"""Touch auto-reload file when saving another file."""
+"""Perform action when saving file matching pattern in dir."""
 
 import os
 import sys
 import time
 from subprocess import call
 
-start_time = time.time()
 
-# file being saved
-file_name = sys.argv[1]
+def main():
+    """Entrypoint."""
+    start_time = time.time()
 
-# directory to monitor for project changes
-project_dir = os.getenv(
-    'PROJECT_DIR',
-    os.path.join(os.path.expanduser('~'), 'projects')
-)
+    # file being saved
+    file_name = sys.argv[1]
 
-# is file in dir being watched
-if file_name.startswith(project_dir):
+    # take action when files matching pattern are modified in dir
+    config = {
+        '~/projects/collab/pdumoulin/lambda-ecr-poc': {
+            'extensions': ['py'],
+            'action': 'docker-compose restart fibcow'
+        },
+        '~/projects/': {
+            'extensions': ['py'],
+            'action': 'touch -c app.py',
+            'sub_dir_level': 1
+        }
+    }
 
-    # determine project name and dir touched file is in
-    project_name = file_name.split(os.path.sep)[
-        len(project_dir.split(os.path.sep))
-    ]
-    project_location = os.path.join(project_dir, project_name)
+    # loop through config, looking for actions to take
+    for directory, setup in config.items():
+        directory = os.path.normpath(directory)
 
-    # determine what file to touch to trigger a reload
-    custom_touch_files = {}
-    default_file_name = os.path.join('src', 'app.py')
-    reload_file_name = custom_touch_files.get(project_name, default_file_name)
-    reload_file_path = os.path.join(project_location, reload_file_name)
+        # make sure file paths are absolute
+        if directory.startswith('~'):
+            directory = directory.replace('~', os.path.expanduser('~'))
 
-    # touch file to trigger app restart
-    if os.path.isfile(reload_file_path):
-        call(f'touch {reload_file_path}', shell=True)
-    else:
-        print(f'{reload_file_path}" is not valid file')
-else:
-    print(f'File "{file_name}" not in "{project_dir}"')
+        # check if file being saved is in config setting
+        if file_name.startswith(directory):
 
-# output on slow-ness
-elapsed = time.time() - start_time
-print(f'Took {elapsed} seconds')
+            # calculate directory to run command in, moving up dirs if needed
+            sub_dir_level = setup.get('sub_dir_level', 0)
+            dir_len = len(directory.split(os.sep))
+            sub_dir_parts = file_name.split(os.sep)[dir_len:][:sub_dir_level]
+            run_dir = os.path.join(directory, *sub_dir_parts)
+
+            # check if file extension is being watched
+            if any([file_name.endswith(x) for x in setup['extensions']]):
+                cmd = f"cd {run_dir} && {setup['action']} ; cd --"
+                print(f'$ {cmd}')
+                call(cmd, shell=True)
+
+    # output on runtime
+    elapsed = time.time() - start_time
+    print(f'Took {elapsed} seconds')
+
+
+if __name__ == '__main__':
+    main()
