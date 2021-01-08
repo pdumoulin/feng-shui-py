@@ -8,8 +8,8 @@ from subprocess import call
 
 # key: directory to watch, inclusing sub dirs
 # value:
-#   extensions    : list of file extensions to monitor for changes
-#   action        : command to run if file is being monitored
+#   extensions    : list of file extensions to monitor for changes (default: *)
+#   action        : command to run if matched (default: echo noop)
 #   sub_dir_level : num dirs to move up before running command (default 0)
 CONFIG = {
     '~/projects/collab/pdumoulin/lambda-ecr-poc': {
@@ -31,25 +31,20 @@ def main():
     # full file path being saved
     file_path = sys.argv[1]
 
-    # load config and filter relvant entries by file path
+    # load config, expand directory paths
     config = load_config()
+
+    # only include configs matching file location and extension
     filtered_config = filter_config(file_path, config)
 
-    # loop through config and run command(s)
-    for directory, setup in filtered_config.items():
-
-        # calculate directory to run command in, moving up dirs
-        sub_dir_level = setup.get('sub_dir_level', 0)
-        run_dir = run_path(file_path, directory, sub_dir_level)
-
-        # run command in run_dir
-        cmd = f"cd {run_dir} && {setup['action']} ; cd --"
+    # run commands in dirs according to config
+    for run_dir, action in generate_tasks(file_path, filtered_config):
+        cmd = f'cd {run_dir} && {action} ; cd --'
         print(f'$ {cmd}')
         call(cmd, shell=True)
 
     # output on runtime and configs matched
-    elapsed = time.time() - start_time
-    print(f'Took {elapsed} seconds')
+    print(f'Took {time.time() - start_time} seconds')
     print(f'Matched {len(filtered_config.keys())} config(s)')
 
 
@@ -62,6 +57,17 @@ def run_path(file_path, dir_path, num_levels):
     return os.path.join(dir_path, *sub_dir_parts)
 
 
+def generate_tasks(file_path, config):
+    """Parse config to generate commands and dirs to run them in."""
+    return [
+        (
+            run_path(file_path, directory, setup.get('sub_dir_level')),
+            setup['action']
+        )
+        for directory, setup in config.items()
+    ]
+
+
 def file_in_dir(file_path, dir_path):
     """File is in dir according to path."""
     return file_path.startswith(dir_path)
@@ -69,7 +75,7 @@ def file_in_dir(file_path, dir_path):
 
 def extension_matches(file_path, extensions):
     """Filepath matches allow list of extensions."""
-    return extensions == '*' or any([file_path.endswith(x) for x in extensions])  # noqa:E501
+    return extensions == '*' or any([file_path.endswith(f'.{x}') for x in extensions])  # noqa:E501
 
 
 def filter_config(file_path, config):
