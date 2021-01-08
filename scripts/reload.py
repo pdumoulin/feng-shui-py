@@ -14,7 +14,7 @@ from subprocess import call
 CONFIG = {
     '~/projects/collab/pdumoulin/lambda-ecr-poc': {
         'extensions': ['py'],
-        'action': 'docker-compose restart fibcow'
+        'action': 'docker-compose restart fibcow || docker-compose up -d fibcow'  # noqa:E501
     },
     '~/projects/': {
         'extensions': ['py'],
