@@ -22,6 +22,10 @@ CONFIG = {
     '~/projects/.*\\.py$': {
         'action': 'touch -c app.py',
         'dir_index': 1
+    },
+    '~/tarantula/.*\\.py$': {
+        'action': 'touch -c web.py',
+        'dir_index': 0
     }
 }
 
