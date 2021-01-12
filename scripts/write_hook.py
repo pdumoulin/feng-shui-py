@@ -57,15 +57,6 @@ def main():
     print(f'Matched {len(config.keys())} config(s)')
 
 
-def run_path(file_path, dir_path, num_levels):
-    """Walk up num levels from dir path into file path."""
-    if num_levels == 0:
-        return dir_path
-    dir_len = len(dir_path.split(os.sep))
-    sub_dir_parts = file_path.split(os.sep)[dir_len:][:num_levels]
-    return os.path.join(dir_path, *sub_dir_parts)
-
-
 def sub_path(file_path, index):
     """Truncate file path based on number of dirs."""
     split_path = file_path.split(os.path.sep)[:index + 2]
