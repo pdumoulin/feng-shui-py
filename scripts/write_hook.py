@@ -19,6 +19,10 @@ CONFIG = {
         'action': 'docker-compose up -d --build fibcow',
         'dir_index': 3
     },
+    '~/projects/lambda-.*?/lambda/.*?/.*py$': {
+        'action': 'docker-compose restart function',
+        'dir_index': 3
+    },
     '~/projects/.*\\.py$': {
         'action': 'touch -c app.py',
         'dir_index': 1
