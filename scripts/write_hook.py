@@ -7,31 +7,34 @@ import sys
 import time
 from subprocess import call
 
-# key: regex to match file path
-#   action: command to perform on match
-#   dir_index: zero-ed index of dir to run command in
-CONFIG = {
-    '~/projects/collab/pdumoulin/lambda-ecr-poc/.*py$': {
-        'action': 'docker-compose restart fibcow || docker-compose up -d --build fibcow',  # noqa:E501
-        'dir_index': 3
-    },
-    '~/projects/collab/pdumoulin/lambda-ecr-poc/.*\\.(yml|yaml)$': {
-        'action': 'docker-compose up -d --build fibcow',
-        'dir_index': 3
-    },
-    '~/projects/lambda-.*?/lambda/.*?/.*py$': {
-        'action': 'docker-compose restart function',
-        'dir_index': 3
-    },
-    '~/projects/.*\\.py$': {
-        'action': 'touch -c app.py',
-        'dir_index': 1
-    },
-    '~/tarantula/.*\\.py$': {
-        'action': 'touch -c web.py',
-        'dir_index': 0
-    }
-}
+# 0 => regex to match file path
+# 1 => command to run, substituting matched groups by index using $N
+CONFIG = [
+    (
+        '^(~/projects/collab/pdumoulin/lambda-ecr-poc/).*\\.py$',
+        'cd $0 && docker-compose restart fibcow || docker-compose up -d --build fibcow'  # noqa:E501
+    ),
+    (
+        '^(~/projects/collab/pdumoulin/lambda-ecr-poc/).*\\.(yml|yaml)$',
+        'cd $0 && docker-compose up -d --build fibcow'
+    ),
+    (
+        '^(~/projects/collab/pdumoulin/aws-step-functions-local/)lambda/(.*?)/.*\\.py$',  # noqa:E501
+        'cd $0 && docker-compose restart $1 ; cd --'
+    ),
+    (
+        '^(~/projects/lambda-.*?/lambda/.*?/)src/.*\\.py$',
+        'cd $0 && docker-compose restart function ; cd --'
+    ),
+    (
+        '^(~/projects/.*?/).*\\.py$',
+        'touch -c $0app.py'
+    ),
+    (
+        '^(~/tarantula/).*\\.py$',
+        'touch -c $0web.py'
+    )
+]
 
 
 def main():
@@ -44,21 +47,18 @@ def main():
     # expand homedir and add defaults
     config = load_config(CONFIG)
 
-    # filter out non-matching rules
-    config = filter_config(file_path, config)
+    # match regex and compile action command to run
+    matches = match_config(file_path, config)
 
-    # dir & action tupe of tasks to run
-    tasks = generate_tasks(file_path, config)
-
-    # run commands in dirs according to config
-    for run_dir, action in tasks:
-        cmd = f'cd {run_dir} && {action} ; cd --'
-        print(f'$ {cmd}')
-        call(cmd, shell=True)
+    # run the tasks
+    for regex, action in matches:
+        print(f'! {regex}')
+        print(f'$ {action}')
+        call(action, shell=True)
 
     # output on runtime and configs matched
     print(f'Took {time.time() - start_time} seconds')
-    print(f'Matched {len(config.keys())} config(s)')
+    print(f'Matched {len(matches)} config(s)')
 
 
 def sub_path(file_path, index):
@@ -67,34 +67,41 @@ def sub_path(file_path, index):
     return os.path.join(os.path.sep, *split_path)
 
 
-def generate_tasks(file_path, config):
-    """Parse config to generate commands and dirs to run them in."""
-    return [
-        (
-            sub_path(file_path, setup['dir_index']),
-            setup['action']
-        )
-        for _, setup in config.items()
-    ]
+def match_config(file_path, config):
+    """Filter out non-matching dir patterns and capture regex groups."""
+    actions = []
+    for regex, action in config:
 
+        # match regex to file path
+        match = re.match(regex, file_path)
+        if match:
 
-def filter_config(file_path, config):
-    """Filter out non-matching dir patterns."""
-    return {
-        k: v for k, v in config.items()
-        if re.match(k, file_path)
-    }
+            # replace $N placeholders in action with regex groups
+            for idx, group in enumerate(match.groups()):
+                action = action.replace(f'${idx}', group)
+            actions.append((regex, action))
+
+    return actions
 
 
 def load_config(config):
     """Expand dir pattern and take into account homedir expansion for index."""
-    result = {}
-    for k, v in config.items():
-        norm_path = os.path.normpath(k)
-        ex_path = os.path.expanduser(norm_path)
-        path_diff = ex_path.count(os.path.sep) - norm_path.count(os.path.sep)
-        v['dir_index'] += path_diff
-        result[ex_path] = v
+    result = []
+    home_char = '~'
+    for regex, action in config:
+
+        # remove duplicate seperators
+        norm_path = os.path.normpath(regex)
+
+        # expand homr dir
+        ex_path = os.path.expanduser(norm_path[norm_path.find(home_char):])
+
+        # combine expanded home dir back to regex
+        final_path = norm_path.split(home_char)[0] + ex_path
+
+        # add back config with modified regex
+        result.append((final_path, action))
+
     return result
 
 
