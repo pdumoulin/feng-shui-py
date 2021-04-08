@@ -61,12 +61,6 @@ def main():
     print(f'Matched {len(matches)} config(s)')
 
 
-def sub_path(file_path, index):
-    """Truncate file path based on number of dirs."""
-    split_path = file_path.split(os.path.sep)[:index + 2]
-    return os.path.join(os.path.sep, *split_path)
-
-
 def match_config(file_path, config):
     """Filter out non-matching dir patterns and capture regex groups."""
     actions = []
