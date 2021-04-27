@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Perform action when saving file matching pattern in dir."""
+"""Perform action when saving file matching pattern(s)."""
 
 import os
 import re
@@ -20,11 +20,11 @@ CONFIG = [
     ),
     (
         '^(~/projects/collab/pdumoulin/aws-step-functions-local/)lambda/(.*?)/.*\\.py$',  # noqa:E501
-        'cd $0 && docker-compose restart $1 ; cd --'
+        'cd $0 && docker-compose restart > /dev/null 2>&1 &'
     ),
     (
         '^(~/projects/lambda-.*?/lambda/.*?/)src/.*\\.py$',
-        'cd $0 && docker-compose restart function ; cd --'
+        'cd $0 && docker-compose restart function > /dev/null 2>&1 &'
     ),
     (
         '^(~/projects/.*?/).*\\.py$',
@@ -62,7 +62,7 @@ def main():
 
 
 def match_config(file_path, config):
-    """Filter out non-matching dir patterns and capture regex groups."""
+    """Match dir regex and replace matching groups in action."""
     actions = []
     for regex, action in config:
 
@@ -79,7 +79,7 @@ def match_config(file_path, config):
 
 
 def load_config(config):
-    """Expand dir pattern and take into account homedir expansion for index."""
+    """Normalize dir path and expand home dir."""
     result = []
     home_char = '~'
     for regex, action in config:
@@ -87,7 +87,7 @@ def load_config(config):
         # remove duplicate seperators
         norm_path = os.path.normpath(regex)
 
-        # expand homr dir
+        # expand home dir
         ex_path = os.path.expanduser(norm_path[norm_path.find(home_char):])
 
         # combine expanded home dir back to regex
