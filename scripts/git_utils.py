@@ -40,6 +40,9 @@ def main():
     parser_sync.add_argument(
         '--account', type=str, required=True,
         help='upstream github account to sync from')
+    parser_sync.add_argument(
+        '--remote', type=str, default=UPSTREAM_NAME,
+        help='identifier of remote repo locally')
     parser_sync.set_defaults(func=sync_upstream)
 
     parser_rebase = subparsers.add_parser('rebase')
@@ -95,18 +98,19 @@ def open_browser(args, repo_name):
 def sync_upstream(args, repo_name):
     upstream_location = f'git@github.com:{args.account}/{repo_name}.git'
     target_branch = args.branch
+    remote_name = args.remote
     remotes = get_remotes()
     if upstream_location == remotes[ORIGIN_NAME]['push']['url']:
         _exit(f'upstream identical to origin for {upstream_location}')
-    if UPSTREAM_NAME not in remotes:
-        utils.cmd(f'git remote add {UPSTREAM_NAME} {upstream_location}')
+    if args.remote not in remotes:
+        utils.cmd(f'git remote add {remote_name} {upstream_location}')
         remotes = get_remotes()
     start_branch = get_current_branch()
     try:
-        utils.cmd(f'git fetch {UPSTREAM_NAME}')
-    except subprocess.CalledProcessError as e:
-        utils.cmd(f'git remote remove {UPSTREAM_NAME}')
-        _exit(f'unable to fetch {UPSTREAM_NAME} at {upstream_location}')
+        utils.cmd(f'git fetch {remote_name}')
+    except subprocess.CalledProcessError:
+        utils.cmd(f'git remote remove {remote_name}')
+        _exit(f'unable to fetch {remote_name} at {upstream_location}')
     stashed = False
     if start_branch != target_branch:
         try:
@@ -120,7 +124,7 @@ def sync_upstream(args, repo_name):
                     checkout_branch(target_branch)
             else:
                 raise e
-    utils.cmd(f'git merge {UPSTREAM_NAME}/{target_branch}')
+    utils.cmd(f'git merge {remote_name}/{target_branch}')
     if start_branch != target_branch:
         checkout_branch(start_branch)
     if stashed:
