@@ -31,6 +31,10 @@ def main():
     parser_browser.add_argument(
         '--location', type=str, required=False, default='',
         help='file or dir to open in browser')
+    parser_browser.add_argument(
+        '--branch', type=str, required=False, default=None,
+        help='branch to open, default to current'
+    )
     parser_browser.set_defaults(func=open_browser)
 
     parser_sync = subparsers.add_parser('sync-upstream')
@@ -83,7 +87,7 @@ def pull_request(args, repo_name):
 
 
 def open_browser(args, repo_name):
-    current_branch = get_current_branch()
+    branch = get_current_branch() if not args.branch else args.branch
     working_dir = get_repo_working_dir()
     target_path = os.path.join(working_dir, args.location)
     remotes = get_remotes()
@@ -91,7 +95,7 @@ def open_browser(args, repo_name):
         target_account = remotes[args.remote]['push']['account']
     except KeyError:
         _exit(f'unable to find remote at {args.remote}')
-    url = f'https://github.com/{target_account}/{repo_name}/tree/{current_branch}/{target_path}'  # noqa:E501
+    url = f'https://github.com/{target_account}/{repo_name}/tree/{branch}/{target_path}'  # noqa:E501
     webbrowser.open(url)
 
 
@@ -162,7 +166,7 @@ def rebase(args, repo_name):
             _exit('working directory is dirty and changes not stashed')
     try:
         utils.cmd(f'git rebase -i --autosquash {target_branch}', None, None)
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError:
         if utils.query_yes_no('rebase failed! abort?', default='no'):
             utils.cmd('git rebase --abort')
             if stashed:
