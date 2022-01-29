@@ -1,4 +1,4 @@
-HOME=$(dig +short discoghost.duckdns.org)
+HOME=$(dig +short $HOME_SUBDOMAIN.duckdns.org)
 CURRENT=$(curl -s ifconfig.co)
 echo "home    => $HOME"
 echo "current => $CURRENT"
