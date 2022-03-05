@@ -55,6 +55,15 @@ def main():
         help='branch to rebase on top of')
     parser_rebase.set_defaults(func=rebase)
 
+    parser_branch = subparsers.add_parser('branch')
+    parser_branch.add_argument(
+        '--prefix', type=str, required=True,
+        help='prefix for numbered branches')
+    parser_branch.add_argument(
+        '--warn-base', type=str, nargs='+', default=[],
+        help='prompt if current branch not in this list')
+    parser_branch.set_defaults(func=branch)
+
     parser_squash = subparsers.add_parser('squash')
     parser_squash.set_defaults(func=squash)
 
@@ -182,6 +191,22 @@ def rebase(args, repo_name):
         _exit('rebase did not complete!')
 
 
+def branch(args, repo_name):
+    if args.warn_base:
+        current_branch = get_current_branch()
+        if current_branch not in args.warn_base:
+            message = f'Current branch {current_branch} is not in {args.warn_base}, proceed?'  # noqa:E501
+            if not utils.query_yes_no(message, default='no'):
+                exit('Exited without creating branch!')
+    branches = list_branches(pattern=f'{args.prefix}[0-9]*')
+    new_index = max([
+        int(branch.split(f'{args.prefix}')[1])
+        for branch in branches
+    ] + [0]) + 1
+    new_branch = f'{args.prefix}{new_index}'
+    utils.cmd(f'git checkout -b {new_branch}')
+
+
 def is_dirty():
     result = utils.cmd('git status -s --untracked-files=no')
     return bool(result.stdout)
@@ -196,6 +221,15 @@ def is_rebase_active():
             raise e
         return False
     return True
+
+
+def list_branches(pattern=''):
+    output = utils.cmd(f'git branch --no-color --list {pattern} --format="%(refname:short)"')  # noqa:E501
+    return [
+        x
+        for x in output.stdout.split('\n')
+        if x != ''
+    ]
 
 
 def checkout_branch(branch_name):
