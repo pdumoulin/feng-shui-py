@@ -137,6 +137,16 @@ def main():
         help='operation to perform')
     package_subparser.set_defaults(func=package)
 
+    # sub-parser for clean process
+    clean_subparser = subparser.add_parser(
+        'clean',
+        help='remove broken symlinks in home dir')
+    clean_subparser.add_argument(
+        '-f',
+        action='store_true',
+        help='do not prompt on remove')
+    clean_subparser.set_defaults(func=clean)
+
     # read in args
     args = parser.parse_args()
 
@@ -267,6 +277,16 @@ def package(args):
             cmd(command_formatted)
     except subprocess.CalledProcessError:
         pass
+
+
+def clean(args):
+    """Remove broken symlinks."""
+    for item in os.listdir(HOME_DIR):
+        full_path = os.path.join(HOME_DIR, item)
+        if os.path.islink(full_path) and not os.path.exists(os.readlink(full_path)):  # noqa:E501
+            if args.f or query_yes_no(f'unlink at "{full_path}"?'):
+                os.unlink(full_path)
+                debug(f'removed {full_path}')
 
 
 def link(args):

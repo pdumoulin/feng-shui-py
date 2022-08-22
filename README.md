@@ -6,11 +6,12 @@ Automatically links home directory files to conf directory for cloud backup and 
 usage: cli.py [-h] [--conf CONF] [--env ENV] [--box BOX] {link,init,store,package} ...
 
 positional arguments:
-  {link,init,store,package}
+  {link,init,store,package,clean}
     link                symlink files from conf storage dir to home dir
     init                initialize new conf storage dir
     store               move file from home dir to conf storage dir
     package             manage system installed packages
+    clean               remove broken symlinks in home dir
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -96,4 +97,16 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+```
+
+### Clean
+
+Remove broken symlinks in home dir.
+
+```
+usage: cli.py clean [-h] [-f]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  -f          do not prompt on remove
 ```
