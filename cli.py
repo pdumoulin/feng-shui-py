@@ -3,39 +3,20 @@
 """Backup and restore machine configurations."""
 
 import argparse
+import inspect
 import os
-import shlex
 import shutil
-import subprocess
+
+import packagers
 
 HOME_DIR = os.path.expanduser('~')
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 
-PACKAGE_COMMAND_MAP = {
-    'brew': {
-        'cmds': {
-            'list': 'brew bundle list --file {filepath}',
-            'backup': 'brew bundle dump -f --file {filepath}',
-            'restore': 'brew bundle install --no-upgrade --file {filepath}'
-        },
-        'filename': 'Brewfile'
-    },
-    'apt-clone': {
-        'cmds': {
-            'list': 'apt-clone info {filepath}',
-            'backup': 'apt-clone clone {filepath}',
-            'restore': 'sudo apt-clone restore {filepath}'
-        },
-        'filename': 'apt-clone.tar.gz'
-    },
-    'pip': {
-        'cmds': {
-            'list': 'cat {filepath}',
-            'backup': 'pip freeze --no-python-version-warning',
-            'restore': 'pip install -r {filepath}'
-        },
-        'filename': 'pip-freeze.txt'
-    }
+# map package cli choice to classname
+PACKAGE_OPTION_MAP = {
+    x[0].lower(): x[0]
+    for x in inspect.getmembers(packagers, inspect.isclass)
+    if not x[0].startswith('Abstract')
 }
 
 
@@ -123,17 +104,18 @@ def main():
         help='manage system installed packages')
     package_subparser.add_argument(
         'cmd',
-        choices=PACKAGE_COMMAND_MAP.keys(),
+        choices=PACKAGE_OPTION_MAP.keys(),
+        type=str.lower,
         help='package management category')
     package_subparser.add_argument(
         'action',
-        choices=set(sum(
-            [
-                list(PACKAGE_COMMAND_MAP[k]['cmds'].keys())
-                for k, v in PACKAGE_COMMAND_MAP.items()
-            ],
-            []
-        )),
+        choices=[
+            x
+            for x in dir(packagers.AbstractPackager)
+            if callable(getattr(packagers.AbstractPackager, x))
+            and not x.startswith('_')
+        ],
+        type=str.lower,
         help='operation to perform')
     package_subparser.set_defaults(func=package)
 
@@ -262,21 +244,12 @@ def store(args):
 
 def package(args):
     """Manage installed packages."""
+    packager_classname = PACKAGE_OPTION_MAP[args.cmd]
+    packager = getattr(packagers, packager_classname)(args.box_conf)
     try:
-        command = PACKAGE_COMMAND_MAP[args.cmd]['cmds'][args.action]
-    except KeyError:
-        fatal(f'"{args.action}" action not implemented for "{args.cmd}"')
-    filename = PACKAGE_COMMAND_MAP[args.cmd]['filename']
-    filepath = os.path.join(args.box_conf, filename)
-    try:
-        command_formatted = command.format(filepath=filepath)
-        if command == command_formatted:
-            f = open(filepath, 'w')
-            cmd(command, stdout=f)
-        else:
-            cmd(command_formatted)
-    except subprocess.CalledProcessError:
-        pass
+        getattr(packager, args.action)()
+    except Exception as e:
+        fatal(e)
 
 
 def clean(args):
@@ -375,46 +348,6 @@ def extension(file_path: str) -> str:
     """
     _, extension = os.path.splitext(file_path)
     return extension
-
-
-def cmd(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        verbose=True
-        ):
-    """Run shell command.
-
-    Args:
-        command (str): command to run
-        stdout (subprocess.PIPE): where to capture stdout
-        stderr (subprocess.PIPE): where to capture stderr
-        verbose (bool): print command input and output
-
-    Returns:
-        subprocess.CompletedProcess
-
-    Raises:
-        subprocess.CalledProcessError
-    """
-    def vprint(string):
-        if verbose:
-            print(string)
-    vprint(f'$ {command}')
-    command = shlex.split(command)
-    try:
-        result = subprocess.run(
-            command,
-            stdout=stdout,
-            stderr=stderr,
-            encoding='utf-8',
-            check=True  # exception on non-zero code
-        )
-    except subprocess.CalledProcessError as e:
-        vprint(e.stderr)
-        raise e
-    vprint(result.stdout)
-    return result
 
 
 def query_yes_no(question, default='yes'):
