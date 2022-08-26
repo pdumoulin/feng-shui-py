@@ -89,9 +89,9 @@ class Brew(AbstractPackager):
     def __init__(self, file_dir, file_name='Brewfile'):
         """Set brew specific options."""
         super().__init__(
-            'brew bundle list --file {filepath}',
-            'brew bundle dump -f --file {filepath}',
-            'brew bundle install --no-upgrade --file {filepath}',
+            'brew bundle list --all --file {filepath}',
+            'brew bundle dump -f --describe --file {filepath}',
+            'brew bundle install -v --no-upgrade --file {filepath}',
             file_dir,
             file_name
         )
