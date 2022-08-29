@@ -227,7 +227,8 @@ class Nativefier(AbstractPackager):
         # save to single backup file
         json_results = json.dumps(results, indent=4, sort_keys=True)
         with open(self.filepath, 'w') as f:
-            f.write(json_results)
+            f.write(f'{json_results}\n')
+        self.info()
 
     def restore(self):
         """Overwrite restore with custom nativefier process."""
