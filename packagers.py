@@ -1,5 +1,6 @@
 """Wrap shell commands to backup/restore package lists."""
 
+import glob
 import json
 import os
 import shlex
@@ -171,3 +172,74 @@ class Npm(AbstractPackager):
             for k, v in data['dependencies'].items():
                 package = '@'.join([k, v['version']])
                 self._cmd(self.restore_cmd.format(package=package))
+
+
+class Nativefier(AbstractPackager):
+    """Manage nativefier apps."""
+
+    install_dir = None
+
+    def __init__(self, file_dir, file_name='nativefier.json', install_dir=None):  # noqa:E501
+        """Set nativefier specific options."""
+        if not install_dir:
+            install_dir = os.path.join(
+                os.path.expanduser('~'),
+                'nativefier'
+            )
+        self.install_dir = install_dir
+        super().__init__(
+            'cat {filepath}',
+            None,
+            'nativefier --name "{name}" --verbose {url} {dest}',
+            'nativefier --version',
+            file_dir,
+            file_name
+        )
+
+    def backup(self):
+        """Override backup with custom nativefier process."""
+        # find all nativefier config files
+        match = [
+            self.install_dir,
+            '*',
+            '*',
+            'Contents',
+            'Resources',
+            'app',
+            'nativefier.json'
+        ]
+        match_path = os.path.join(*match)
+        files = glob.glob(match_path)
+        if not files:
+            raise Exception(f'No nativefier apps installed at "{self.install_dir}"!')  # noqa:E501
+
+        # extract relevant config options
+        results = []
+        fields = ['name', 'targetUrl']
+        for file_path in files:
+            with open(file_path, 'r') as f:
+                x = json.load(f)
+                results.append({
+                    field: x[field]
+                    for field in fields
+                })
+
+        # save to single backup file
+        json_results = json.dumps(results, indent=4, sort_keys=True)
+        with open(self.filepath, 'w') as f:
+            f.write(json_results)
+
+    def restore(self):
+        """Overwrite restore with custom nativefier process."""
+        if not os.path.isdir(self.install_dir):
+            os.makedirs(self.install_dir)
+        with open(self.filepath, 'r') as f:
+            data = json.load(f)
+            for conf in data:
+                self._cmd(
+                    self.restore_cmd.format(
+                        url=conf['targetUrl'],
+                        name=conf['name'],
+                        dest=self.install_dir
+                    )
+                )

@@ -249,7 +249,10 @@ def package(args):
     try:
         packager.verify()
         getattr(packager, args.action)()
+    except NotImplementedError:
+        fatal(f'Action "{args.action}" not available for "{args.cmd}"!')
     except Exception as e:
+        debug(type(e))
         fatal(e)
 
 
