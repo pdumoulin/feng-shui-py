@@ -12,22 +12,32 @@ class AbstractPackager(object):
     info_cmd = None
     backup_cmd = None
     restore_cmd = None
+    verify_cmd = None
     filepath = None
 
-    def __init__(self, info, backup, restore, file_dir, file_name):
+    def __init__(
+            self,
+            info, backup, restore, verify,
+            file_dir, file_name):
         """Set required data.
 
         Args:
             info (str): command to read existing package file
             backup (str): command to create package file
             restore (str): command to install based on package file
+            verify (str): command to verify tool is installed
             file_dir (str): location of package file
             file_name (str): name of package file
         """
         self.info_cmd = info
         self.backup_cmd = backup
         self.restore_cmd = restore
+        self.verify_cmd = verify
         self.filepath = os.path.join(file_dir, file_name)
+
+    def verify(self):
+        """Verify tool is installed."""
+        self._cmd(self.verify_cmd)
 
     def info(self):
         """Run info command."""
@@ -89,9 +99,10 @@ class Brew(AbstractPackager):
     def __init__(self, file_dir, file_name='Brewfile'):
         """Set brew specific options."""
         super().__init__(
-            'brew bundle list --all --file {filepath}',
+            'cat {filepath}',
             'brew bundle dump -f --describe --file {filepath}',
             'brew bundle install -v --no-upgrade --file {filepath}',
+            'brew --version',
             file_dir,
             file_name
         )
@@ -106,6 +117,7 @@ class Apt(AbstractPackager):
             'apt-clone info {filepath}',
             'apt-clone clone {filepath}',
             'sudo apt-clone restore {filepath}',
+            'apt-clone --help',
             file_dir,
             file_name
         )
@@ -120,6 +132,7 @@ class Pip(AbstractPackager):
             'cat {filepath}',
             'pip freeze --no-python-version-warning',
             'pip install -r {filepath}',
+            'pip --version',
             file_dir,
             file_name
         )
@@ -140,6 +153,7 @@ class Npm(AbstractPackager):
             'cat {filepath}',
             'npm list -g --json',
             'npm install -g {package}',
+            'npm --version',
             file_dir,
             file_name
         )

@@ -247,6 +247,7 @@ def package(args):
     packager_classname = PACKAGE_OPTION_MAP[args.cmd]
     packager = getattr(packagers, packager_classname)(args.box_conf)
     try:
+        packager.verify()
         getattr(packager, args.action)()
     except Exception as e:
         fatal(e)
