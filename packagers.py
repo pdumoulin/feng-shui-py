@@ -117,7 +117,7 @@ class Apt(AbstractPackager):
         super().__init__(
             'apt-clone info {filepath}',
             'apt-clone clone {filepath}',
-            'sudo apt-clone --debug restore {filepath}',
+            'sudo apt-clone restore {filepath}',
             'apt-clone --help',
             file_dir,
             file_name
