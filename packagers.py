@@ -178,7 +178,7 @@ class Git(AbstractPackager):
     """Manage git repos."""
 
     install_dir = None
-    remote = None
+    default_remote = None
 
     def __init__(self, file_dir, file_name='git_repos.json', install_dir=None, remote='origin'):  # noqa:E501
         """Set git specific options."""
@@ -188,11 +188,11 @@ class Git(AbstractPackager):
                 'projects'
             )
         self.install_dir = install_dir
-        self.remote = remote
+        self.default_remote = remote
         super().__init__(
             'cat {filepath}',
-            'git -C {git_dir} remote get-url {remote_name}',
-            'git clone {git_url} {git_dir}',
+            None,
+            None,
             'git --version',
             file_dir,
             file_name
@@ -204,21 +204,18 @@ class Git(AbstractPackager):
             os.makedirs(self.install_dir)
 
         # query for all repo names and remote urls
-        results = []
+        results = {}
         for name in os.listdir(self.install_dir):
             full_path = os.path.join(self.install_dir, name)
             if os.path.isdir(full_path):
                 try:
-                    result = self._cmd(
-                        self.backup_cmd.format(
-                            git_dir=full_path,
-                            remote_name=self.remote
-                        )
-                    )
-                    results.append({
-                        'name': name,
-                        'url': result.stdout.rstrip()
-                    })
+                    remotes = self._cmd(f'git -C {full_path} remote').stdout.rstrip().split('\n')  # noqa:E501
+                    results[name] = {
+                        'remotes': {
+                            remote: self._cmd(f'git -C {full_path} remote get-url {remote}').stdout.rstrip()  # noqa:E501
+                            for remote in remotes
+                        }
+                    }
                 except subprocess.CalledProcessError:
                     pass
 
@@ -234,14 +231,18 @@ class Git(AbstractPackager):
             os.makedirs(self.install_dir)
         with open(self.filepath, 'r') as f:
             data = json.load(f)
-            for conf in data:
+            for name, conf in data.items():
                 try:
-                    self._cmd(
-                        self.restore_cmd.format(
-                            git_url=conf['url'],
-                            git_dir=os.path.join(self.install_dir, conf['name'])  # noqa:E501
-                        )
-                    )
+                    # clone into dir
+                    remotes = conf['remotes']
+                    full_path = os.path.join(self.install_dir, name)
+                    default_remote = remotes[self.default_remote]
+                    self._cmd(f'git clone {default_remote} {full_path}')
+
+                    # setup remotes
+                    for k, v in remotes.items():
+                        if k != self.default_remote:
+                            self._cmd(f'git remote add {k} {v}')
                 except subprocess.CalledProcessError:
                     pass
 
