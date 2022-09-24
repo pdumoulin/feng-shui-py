@@ -174,6 +174,78 @@ class Npm(AbstractPackager):
                 self._cmd(self.restore_cmd.format(package=package))
 
 
+class Git(AbstractPackager):
+    """Manage git repos."""
+
+    install_dir = None
+    remote = None
+
+    def __init__(self, file_dir, file_name='git_repos.json', install_dir=None, remote='origin'):  # noqa:E501
+        """Set git specific options."""
+        if not install_dir:
+            install_dir = os.path.join(
+                os.path.expanduser('~'),
+                'projects'
+            )
+        self.install_dir = install_dir
+        self.remote = remote
+        super().__init__(
+            'cat {filepath}',
+            'git -C {git_dir} remote get-url {remote_name}',
+            'git clone {git_url} {git_dir}',
+            'git --version',
+            file_dir,
+            file_name
+        )
+
+    def backup(self):
+        """Override backup with custom git process."""
+        if not os.path.isdir(self.install_dir):
+            os.makedirs(self.install_dir)
+
+        # query for all repo names and remote urls
+        results = []
+        for name in os.listdir(self.install_dir):
+            full_path = os.path.join(self.install_dir, name)
+            if os.path.isdir(full_path):
+                try:
+                    result = self._cmd(
+                        self.backup_cmd.format(
+                            git_dir=full_path,
+                            remote_name=self.remote
+                        )
+                    )
+                    results.append({
+                        'name': name,
+                        'url': result.stdout.rstrip()
+                    })
+                except subprocess.CalledProcessError:
+                    pass
+
+        # save to backup file
+        json_results = json.dumps(results, indent=4, sort_keys=True)
+        with open(self.filepath, 'w') as f:
+            f.write(f'{json_results}\n')
+        self.info()
+
+    def restore(self):
+        """Override restore with custom git process."""
+        if not os.path.isdir(self.install_dir):
+            os.makedirs(self.install_dir)
+        with open(self.filepath, 'r') as f:
+            data = json.load(f)
+            for conf in data:
+                try:
+                    self._cmd(
+                        self.restore_cmd.format(
+                            git_url=conf['url'],
+                            git_dir=os.path.join(self.install_dir, conf['name'])  # noqa:E501
+                        )
+                    )
+                except subprocess.CalledProcessError:
+                    pass
+
+
 class Nativefier(AbstractPackager):
     """Manage nativefier apps."""
 
@@ -198,6 +270,9 @@ class Nativefier(AbstractPackager):
 
     def backup(self):
         """Override backup with custom nativefier process."""
+        if not os.path.isdir(self.install_dir):
+            os.makedirs(self.install_dir)
+
         # find all nativefier config files
         match = [
             self.install_dir,
