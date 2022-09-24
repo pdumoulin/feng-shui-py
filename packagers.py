@@ -242,7 +242,7 @@ class Git(AbstractPackager):
                     # setup remotes
                     for k, v in remotes.items():
                         if k != self.default_remote:
-                            self._cmd(f'git remote add {k} {v}')
+                            self._cmd(f'git -C {full_path} remote add {k} {v}')
                 except subprocess.CalledProcessError:
                     pass
 
