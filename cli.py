@@ -248,7 +248,8 @@ def package(args):
     packager = getattr(packagers, packager_classname)(args.box_conf)
     try:
         packager.verify()
-        getattr(packager, args.action)()
+        if args.action != 'verify':
+            getattr(packager, args.action)()
     except NotImplementedError:
         fatal(f'Action "{args.action}" not available for "{args.cmd}"!')
     except Exception as e:
