@@ -243,6 +243,8 @@ class Git(AbstractPackager):
                     for k, v in remotes.items():
                         if k != self.default_remote:
                             self._cmd(f'git -C {full_path} remote add {k} {v}')
+                        else:
+                            self._cmd(f'git -C {full_path} remote set-url {k} {v}')  # noqa:E501
                 except subprocess.CalledProcessError:
                     pass
 
