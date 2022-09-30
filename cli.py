@@ -297,6 +297,9 @@ def link(args):
         if os.path.isdir(target) and not os.path.islink(target):
             warn('skipping dir "%s"' % target)
             continue
+        elif os.path.islink(target) and os.readlink(target) == source:
+            warn('skipping already linked "%s"' % target)
+            continue
         elif os.path.isfile(target) or os.path.islink(target):
             if args.f or query_yes_no('remove file at "%s"?' % target):
 
