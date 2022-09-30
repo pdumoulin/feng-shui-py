@@ -245,7 +245,10 @@ def store(args):
 def package(args):
     """Manage installed packages."""
     packager_classname = PACKAGE_OPTION_MAP[args.cmd]
-    packager = getattr(packagers, packager_classname)(args.box_conf)
+    package_dir = os.path.join(args.box_conf, 'pkg')
+    if not os.path.isdir(package_dir):
+        os.makedirs(package_dir)
+    packager = getattr(packagers, packager_classname)(package_dir)
     try:
         packager.verify()
         if args.action != 'verify':
