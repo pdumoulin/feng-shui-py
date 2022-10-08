@@ -322,3 +322,24 @@ class Nativefier(AbstractPackager):
                         dest=self.install_dir
                     )
                 )
+
+
+class Crontab(AbstractPackager):
+    """Manage crontab install."""
+
+    def __init__(self, file_dir, file_name='crontab.txt'):
+        """Crontab specific options."""
+        super().__init__(
+            'cat {filepath}',
+            'crontab -l',
+            'crontab {filepath}',
+            'which crontab',
+            file_dir,
+            file_name
+        )
+
+    def backup(self):
+        """Override backup, write stdout to file."""
+        with open(self.filepath, 'w') as f:
+            self._cmd(self.backup_cmd, stdout=f)
+            self.info()
