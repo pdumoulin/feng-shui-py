@@ -3,11 +3,16 @@
 """Backup and restore machine configurations."""
 
 import argparse
+import glob
 import inspect
 import os
 import shutil
 
 import packagers
+
+from utils import cmd
+from utils import query_yes_no
+
 
 HOME_DIR = os.path.expanduser('~')
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -34,7 +39,9 @@ def main():
     default_box = os.getenv(default_box_varname)
 
     # top level parser for shared args
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
     parser.add_argument(
         '--conf',
         default=default_conf_dir,
@@ -118,6 +125,26 @@ def main():
         type=str.lower,
         help='operation to perform')
     package_subparser.set_defaults(func=package)
+
+    # sub-parser for python venv process
+    venv_subparser = subparser.add_parser(
+        'venv',
+        help='manage user level python venv',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    venv_subparser.add_argument(
+        '--loc',
+        type=str,
+        default=f'{HOME_DIR}/venv',
+        help='where to create and access user virtual environment'
+    )
+    venv_subparser.add_argument(
+        '--req',
+        type=str,
+        default=f'{HOME_DIR}/*requirements.txt',
+        help='glob or filename used to match requirements files to install'
+    )
+    venv_subparser.set_defaults(func=venv)
 
     # sub-parser for clean process
     clean_subparser = subparser.add_parser(
@@ -242,6 +269,49 @@ def store(args):
     )
 
 
+def venv(args):
+    """Manage user python venv."""
+    venv_dir = args.loc
+    req_glob = args.req
+
+    # create venv if not exists or user wants to overwrite
+    create = True
+    if os.path.isdir(venv_dir):
+        choice = query_yes_no(
+            f'venv exists at {venv_dir}, remove it?', default='no')
+        if choice:
+            shutil.rmtree(venv_dir)
+            debug(f'removed {venv_dir}')
+        else:
+            create = False
+    if create:
+        cmd(f'python -m venv {venv_dir}')
+
+    # venv binaries
+    venv_pip = f'{venv_dir}/bin/pip3'
+
+    # find requirements files(s)
+    files = [req_glob] if os.path.isfile(req_glob) else glob.glob(req_glob)
+
+    # install requirements
+    for f in files:
+        cmd(f'cat {f}')
+        choice = query_yes_no(
+            'install the above packages?',
+            default='yes')
+        if choice:
+            cmd(f'{venv_pip} install -r {f}')
+
+    # print next steps
+    print(f"""
+Add the following to your .bashrc
+
+    PATH="{venv_dir}/bin:$PATH"
+
+Then restart your shell!
+    """)
+
+
 def package(args):
     """Manage installed packages."""
     packager_classname = PACKAGE_OPTION_MAP[args.cmd]
@@ -359,42 +429,6 @@ def extension(file_path: str) -> str:
     """
     _, extension = os.path.splitext(file_path)
     return extension
-
-
-def query_yes_no(question, default='yes'):
-    """Query user for yes/no input.
-
-    Args:
-        question (str): prompt for user
-        default (str): set option with if no user input
-
-    Returns:
-        bool: user selection
-    """
-    valid = {
-        'yes': True,
-        'y': True,
-        'no': False,
-        'n': False
-    }
-    if default is None:
-        prompt = '[y/n]'
-    elif default == 'yes':
-        prompt = '[Y/n]'
-    elif default == 'no':
-        prompt = '[y/N]'
-    else:
-        raise ValueError(f'invalid default answer: "{default}"')
-
-    while True:
-        print(f'{question} {prompt}: ', end='')
-        choice = input().lower()
-        if default is not None and choice == '':
-            return valid[default]
-        elif choice in valid:
-            return valid[choice]
-        else:
-            print(f'invalid voice "{choice}" from {[x for x in valid.keys()]}')
 
 
 def debug(message):

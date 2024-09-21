@@ -2,17 +2,18 @@
 
 import json
 import os
-import shlex
 import subprocess
+
+from utils import cmd
 
 
 class AbstractPackager(object):
     """Base packager with most common access patterns."""
 
-    info_cmd = None
-    backup_cmd = None
-    restore_cmd = None
-    verify_cmd = None
+    infocmd = None
+    backupcmd = None
+    restorecmd = None
+    verifycmd = None
     filepath = None
 
     def __init__(
@@ -29,68 +30,28 @@ class AbstractPackager(object):
             file_dir (str): location of package file
             file_name (str): name of package file
         """
-        self.info_cmd = info
-        self.backup_cmd = backup
-        self.restore_cmd = restore
-        self.verify_cmd = verify
+        self.infocmd = info
+        self.backupcmd = backup
+        self.restorecmd = restore
+        self.verifycmd = verify
         self.filepath = os.path.join(file_dir, file_name)
 
     def verify(self):
         """Verify tool is installed."""
-        self._cmd(self.verify_cmd)
+        cmd(self.verifycmd)
 
     def info(self):
         """Run info command."""
-        self._cmd(self.info_cmd.format(filepath=self.filepath))
+        cmd(self.infocmd.format(filepath=self.filepath))
 
     def backup(self):
         """Run backup command."""
-        self._cmd(self.backup_cmd.format(filepath=self.filepath))
+        cmd(self.backupcmd.format(filepath=self.filepath))
         self.info()
 
     def restore(self):
         """Run restore command."""
-        self._cmd(self.restore_cmd.format(filepath=self.filepath))
-
-    def _cmd(
-            self,
-            command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            verbose=True
-            ):
-        """Run shell command.
-
-        Args:
-            command (str): command to run
-            stdout (subprocess.PIPE): where to capture stdout
-            stderr (subprocess.PIPE): where to capture stderr
-            verbose (bool): print command input and output
-
-        Returns:
-            subprocess.CompletedProcess
-
-        Raises:
-            subprocess.CalledProcessError
-        """
-        def vprint(string):
-            if verbose:
-                print(string)
-        vprint(f'$ {command}')
-        command = shlex.split(command)
-        try:
-            result = subprocess.run(
-                command,
-                stdout=stdout,
-                stderr=stderr,
-                encoding='utf-8',
-                check=True  # exception on non-zero code
-            )
-        except subprocess.CalledProcessError as e:
-            vprint(e.stderr)
-            raise e
-        vprint(result.stdout)
-        return result
+        cmd(self.restorecmd.format(filepath=self.filepath))
 
 
 class Brew(AbstractPackager):
@@ -140,7 +101,7 @@ class Pip(AbstractPackager):
     def backup(self):
         """Override backup, write stdout to file."""
         with open(self.filepath, 'w') as f:
-            self._cmd(self.backup_cmd, stdout=f)
+            cmd(self.backupcmd, stdout=f)
             self.info()
 
 
@@ -161,7 +122,7 @@ class Npm(AbstractPackager):
     def backup(self):
         """Override backup, write stdout to file."""
         with open(self.filepath, 'w') as f:
-            self._cmd(self.backup_cmd, stdout=f)
+            cmd(self.backupcmd, stdout=f)
             self.info()
 
     def restore(self):
@@ -170,7 +131,7 @@ class Npm(AbstractPackager):
             data = json.load(f)
             for k, v in data['dependencies'].items():
                 package = '@'.join([k, v['version']])
-                self._cmd(self.restore_cmd.format(package=package))
+                cmd(self.restorecmd.format(package=package))
 
 
 class Git(AbstractPackager):
@@ -208,10 +169,10 @@ class Git(AbstractPackager):
             full_path = os.path.join(self.install_dir, name)
             if os.path.isdir(full_path):
                 try:
-                    remotes = self._cmd(f'git -C {full_path} remote').stdout.rstrip().split('\n')  # noqa:E501
+                    remotes = cmd(f'git -C {full_path} remote').stdout.rstrip().split('\n')  # noqa:E501
                     results[name] = {
                         'remotes': {
-                            remote: self._cmd(f'git -C {full_path} remote get-url {remote}').stdout.rstrip()  # noqa:E501
+                            remote: cmd(f'git -C {full_path} remote get-url {remote}').stdout.rstrip()  # noqa:E501
                             for remote in remotes
                         }
                     }
@@ -236,14 +197,14 @@ class Git(AbstractPackager):
                     remotes = conf['remotes']
                     full_path = os.path.join(self.install_dir, name)
                     default_remote = remotes[self.default_remote]
-                    self._cmd(f'git clone {default_remote} {full_path}')
+                    cmd(f'git clone {default_remote} {full_path}')
 
                     # setup remotes
                     for k, v in remotes.items():
                         if k != self.default_remote:
-                            self._cmd(f'git -C {full_path} remote add {k} {v}')
+                            cmd(f'git -C {full_path} remote add {k} {v}')
                         else:
-                            self._cmd(f'git -C {full_path} remote set-url {k} {v}')  # noqa:E501
+                            cmd(f'git -C {full_path} remote set-url {k} {v}')  # noqa:E501
                 except subprocess.CalledProcessError:
                     pass
 
@@ -265,5 +226,5 @@ class Crontab(AbstractPackager):
     def backup(self):
         """Override backup, write stdout to file."""
         with open(self.filepath, 'w') as f:
-            self._cmd(self.backup_cmd, stdout=f)
+            cmd(self.backupcmd, stdout=f)
             self.info()

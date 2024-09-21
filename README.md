@@ -3,26 +3,27 @@ feng-shui-py
 Automatically links home directory files to conf directory for cloud backup and generates package lists for popular managers.
 
 ```
-usage: cli.py [-h] [--conf CONF] [--env ENV] [--box BOX] {link,init,store,package} ...
+usage: cli.py [-h] [--conf CONF] [--env ENV] [--box BOX] {link,init,store,package,venv,clean} ...
 
 positional arguments:
-  {link,init,store,package,clean}
+  {link,init,store,package,venv,clean}
     link                symlink files from conf storage dir to home dir
     init                initialize new conf storage dir
     store               move file from home dir to conf storage dir
     package             manage system installed packages
+    venv                manage user level python venv
     clean               remove broken symlinks in home dir
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
-  --conf CONF           override default conf dir: "default-value-here"
-  --env ENV             override default env dir: "default-value-here"
-  --box BOX             override default box dir: "default-value-here"
+  --conf CONF           override default conf dir: "~/feng-shui-py/conf"
+  --env ENV             override default env dir: "system-default-value-here"
+  --box BOX             override default box dir: "system-default-value-here"
 ```
 
 ### Configuration
 
-Commands are always executed in the context of a single box being configured.
+Commands which manage conf data are always executed in the context of a single box being configured.
 
 | name | cli flag | envvar | default | description |
 | ------------- | ------------- | ------------- | ------------- | ------------- |
@@ -109,4 +110,17 @@ usage: cli.py clean [-h] [-f]
 optional arguments:
   -h, --help  show this help message and exit
   -f          do not prompt on remove
+```
+
+### Python Virtual Environment
+
+Setup a user level python virtual environment distinct from system packages.
+
+```
+usage: cli.py venv [-h] [--loc LOC] [--req REQ]
+
+options:
+  -h, --help  show this help message and exit
+  --loc LOC   where to create and access user virtual environment (default: ~/venv)
+  --req REQ   glob or filename used to match requirements files to install (default: ~/*requirements.txt)
 ```
