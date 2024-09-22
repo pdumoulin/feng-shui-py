@@ -308,9 +308,9 @@ def venv(args):
     print(f"""
 Add the following to your .bashrc
 
-    PATH="{venv_dir}/bin:$PATH"
+    export PATH="{venv_dir}/bin:$PATH"
 
-Then restart your shell!
+Then restart your shell and run `which python` to verify!
     """)
 
 
