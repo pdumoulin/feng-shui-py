@@ -7,6 +7,7 @@ import glob
 import inspect
 import os
 import shutil
+from venv import EnvBuilder
 
 import packagers
 
@@ -285,7 +286,8 @@ def venv(args):
         else:
             create = False
     if create:
-        cmd(f'python -m venv {venv_dir}')
+        env_builder = EnvBuilder(clear=False, with_pip=True)
+        env_builder.create(venv_dir)
 
     # venv binaries
     venv_pip = f'{venv_dir}/bin/pip3'
