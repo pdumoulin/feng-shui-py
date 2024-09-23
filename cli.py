@@ -304,11 +304,18 @@ def venv(args):
         if choice:
             cmd(f'{venv_pip} install -r {f}')
 
+    # detect pyenv to avoid breaking it
+    paths = os.getenv('PATH').split(':')
+    pyenv_path = [x for x in paths if x.endswith('.pyenv/shims')]
+    new_path = f'{venv_dir}/bin:$PATH'
+    if pyenv_path:
+        new_path = f'{pyenv_path[0]}:{new_path}'
+
     # print next steps
     print(f"""
 Add the following to your .bashrc
 
-    export PATH="{venv_dir}/bin:$PATH"
+    export PATH="{new_path}"
 
 Then restart your shell and run `which python` to verify!
     """)
