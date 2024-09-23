@@ -7,6 +7,7 @@ import glob
 import inspect
 import os
 import shutil
+import subprocess
 from venv import EnvBuilder
 
 import packagers
@@ -275,6 +276,17 @@ def venv(args):
     venv_dir = args.loc
     req_glob = args.req
 
+    # warn if pyenv installed
+    try:
+        cmd('which pyenv')
+    except subprocess.CalledProcessError:
+        pass
+    else:
+        print('pyenv is installed and will conflict!\n')
+        choice = query_yes_no('proceed?', default='no')
+        if not choice:
+            exit(0)
+
     # create venv if not exists or user wants to overwrite
     create = True
     if os.path.isdir(venv_dir):
@@ -306,16 +318,11 @@ def venv(args):
 
     # print next steps
     print(f"""
-1. Add the following to your .bashrc
+Add the following to your .bashrc
 
     export PATH="{venv_dir}/bin:$PATH"
 
-2. Then restart your shell and run `which python` to verify!
-
-!! If using pyenv for a project, you may need to re-set the PATH.
-
-    alias pyenvon='export PATH="{HOME_DIR}/.pyenv/shims:$PATH"'
-    alias pyenvoff='export PATH="{venv_dir}/bin:$PATH"'
+Then restart your shell and run `which python` to verify!
     """)
 
 

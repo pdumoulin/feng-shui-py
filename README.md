@@ -124,3 +124,5 @@ options:
   --loc LOC   where to create and access user virtual environment (default: ~/venv)
   --req REQ   glob or filename used to match requirements files to install (default: ~/*requirements.txt)
 ```
+
+:warning: This will conflict with how [pyenv](https://github.com/pyenv/pyenv) manages environments, it is recommended to not use both at the same time.
