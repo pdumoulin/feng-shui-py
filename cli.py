@@ -306,11 +306,16 @@ def venv(args):
 
     # print next steps
     print(f"""
-Add the following to your .bashrc
+1. Add the following to your .bashrc
 
     export PATH="{venv_dir}/bin:$PATH"
 
-Then restart your shell and run `which python` to verify!
+2. Then restart your shell and run `which python` to verify!
+
+!! If using pyenv for a project, you may need to re-set the PATH.
+
+    alias pyenvon='export PATH="{HOME_DIR}/.pyenv/shims:$PATH"'
+    alias pyenvoff='export PATH="{venv_dir}/bin:$PATH"'
     """)
 
 
