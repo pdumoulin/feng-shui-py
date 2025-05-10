@@ -2,14 +2,15 @@
 
 import shlex
 import subprocess
+import typing
 
 
 def cmd(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        verbose=True
-        ):
+        raw_command: str,
+        stdout: typing.Any = subprocess.PIPE,
+        stderr: typing.Any = subprocess.PIPE,
+        verbose: bool = True
+        ) -> subprocess.CompletedProcess:
     """Run shell command.
 
     Args:
@@ -24,11 +25,11 @@ def cmd(
     Raises:
         subprocess.CalledProcessError
     """
-    def vprint(string):
+    def vprint(string: str) -> None:
         if verbose:
             print(string)
-    vprint(f'$ {command}')
-    command = shlex.split(command)
+    vprint(f'$ {raw_command}')
+    command = shlex.split(raw_command)
     try:
         result = subprocess.run(
             command,
@@ -44,7 +45,7 @@ def cmd(
     return result
 
 
-def query_yes_no(question, default='yes'):
+def query_yes_no(question: str, default: str = 'yes') -> bool:
     """Query user for yes/no input.
 
     Args:

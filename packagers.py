@@ -10,16 +10,16 @@ from utils import cmd
 class AbstractPackager(object):
     """Base packager with most common access patterns."""
 
-    infocmd = None
-    backupcmd = None
-    restorecmd = None
-    verifycmd = None
-    filepath = None
+    infocmd = ''
+    backupcmd = ''
+    restorecmd = ''
+    verifycmd = ''
+    filepath = ''
 
     def __init__(
             self,
-            info, backup, restore, verify,
-            file_dir, file_name):
+            info: str, backup: str, restore: str, verify: str,
+            file_dir: str, file_name: str) -> None:
         """Set required data.
 
         Args:
@@ -36,20 +36,20 @@ class AbstractPackager(object):
         self.verifycmd = verify
         self.filepath = os.path.join(file_dir, file_name)
 
-    def verify(self):
+    def verify(self) -> None:
         """Verify tool is installed."""
         cmd(self.verifycmd)
 
-    def info(self):
+    def info(self) -> None:
         """Run info command."""
         cmd(self.infocmd.format(filepath=self.filepath))
 
-    def backup(self):
+    def backup(self) -> None:
         """Run backup command."""
         cmd(self.backupcmd.format(filepath=self.filepath))
         self.info()
 
-    def restore(self):
+    def restore(self) -> None:
         """Run restore command."""
         cmd(self.restorecmd.format(filepath=self.filepath))
 
@@ -57,7 +57,7 @@ class AbstractPackager(object):
 class Brew(AbstractPackager):
     """Manage mac packages via brew."""
 
-    def __init__(self, file_dir, file_name='Brewfile'):
+    def __init__(self, file_dir: str, file_name: str = 'Brewfile'):
         """Set brew specific options."""
         super().__init__(
             'cat {filepath}',
@@ -72,7 +72,7 @@ class Brew(AbstractPackager):
 class Apt(AbstractPackager):
     """Manage debian packages via apt-clone."""
 
-    def __init__(self, file_dir, file_name='apt-clone.tar.gz'):
+    def __init__(self, file_dir: str, file_name: str = 'apt-clone.tar.gz') -> None:  # noqa:E501
         """Set apt-clone specific options."""
         super().__init__(
             'apt-clone info {filepath}',
@@ -87,7 +87,7 @@ class Apt(AbstractPackager):
 class Pip(AbstractPackager):
     """Manage python packages via pip."""
 
-    def __init__(self, file_dir, file_name='pip-freeze.txt'):
+    def __init__(self, file_dir: str, file_name: str = 'pip-freeze.txt') -> None:  # noqa:E501
         """Set pip specific options."""
         super().__init__(
             'cat {filepath}',
@@ -98,7 +98,7 @@ class Pip(AbstractPackager):
             file_name
         )
 
-    def backup(self):
+    def backup(self) -> None:
         """Override backup, write stdout to file."""
         with open(self.filepath, 'w') as f:
             cmd(self.backupcmd, stdout=f)
@@ -108,7 +108,7 @@ class Pip(AbstractPackager):
 class Npm(AbstractPackager):
     """Manage node packages via npm."""
 
-    def __init__(self, file_dir, file_name='package.json'):
+    def __init__(self, file_dir: str, file_name: str = 'package.json') -> None:
         """Set npm specific options."""
         super().__init__(
             'cat {filepath}',
@@ -119,13 +119,13 @@ class Npm(AbstractPackager):
             file_name
         )
 
-    def backup(self):
+    def backup(self) -> None:
         """Override backup, write stdout to file."""
         with open(self.filepath, 'w') as f:
             cmd(self.backupcmd, stdout=f)
             self.info()
 
-    def restore(self):
+    def restore(self) -> None:
         """Override restore to loop through each package install."""
         with open(self.filepath, 'r') as f:
             data = json.load(f)
@@ -137,10 +137,10 @@ class Npm(AbstractPackager):
 class Git(AbstractPackager):
     """Manage git repos."""
 
-    install_dir = None
-    default_remote = None
+    install_dir = ''
+    default_remote = ''
 
-    def __init__(self, file_dir, file_name='git_repos.json', install_dir=None, remote='origin'):  # noqa:E501
+    def __init__(self, file_dir: str, file_name: str = 'git_repos.json', install_dir: str = '', remote: str = 'origin'):  # noqa:E501
         """Set git specific options."""
         if not install_dir:
             install_dir = os.path.join(
@@ -151,14 +151,14 @@ class Git(AbstractPackager):
         self.default_remote = remote
         super().__init__(
             'cat {filepath}',
-            None,
-            None,
+            '',
+            '',
             'git --version',
             file_dir,
             file_name
         )
 
-    def backup(self):
+    def backup(self) -> None:
         """Override backup with custom git process."""
         if not os.path.isdir(self.install_dir):
             os.makedirs(self.install_dir)
@@ -185,7 +185,7 @@ class Git(AbstractPackager):
             f.write(f'{json_results}\n')
         self.info()
 
-    def restore(self):
+    def restore(self) -> None:
         """Override restore with custom git process."""
         if not os.path.isdir(self.install_dir):
             os.makedirs(self.install_dir)
@@ -212,7 +212,7 @@ class Git(AbstractPackager):
 class Crontab(AbstractPackager):
     """Manage crontab install."""
 
-    def __init__(self, file_dir, file_name='crontab.txt'):
+    def __init__(self, file_dir: str, file_name: str = 'crontab.txt') -> None:
         """Crontab specific options."""
         super().__init__(
             'cat {filepath}',
@@ -223,7 +223,7 @@ class Crontab(AbstractPackager):
             file_name
         )
 
-    def backup(self):
+    def backup(self) -> None:
         """Override backup, write stdout to file."""
         with open(self.filepath, 'w') as f:
             cmd(self.backupcmd, stdout=f)

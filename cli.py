@@ -27,7 +27,7 @@ PACKAGE_OPTION_MAP = {
 }
 
 
-def main():
+def main() -> None:
     """Entrypoint for script execution."""
     # set defaults based on env vars
     default_conf_varname = 'FS_CONF'
@@ -163,12 +163,12 @@ def main():
 
     # additional custom args validation
     if not args.env:
-        print(f'env not set in --env or "${default_env_varname}", please set it now: ', end='')  # noqa:E501
+        print(f'env not set in --env or "${default_env_varname}", please set it now: ', end='')  # noqa:E501,E713
         args.env = input().lower()
         if not args.env:
             fatal('Invalid input!')
     if not args.box:
-        print(f'box not set in --box or "${default_box_varname}", please set it now: ', end='')  # noqa:E501
+        print(f'box not set in --box or "${default_box_varname}", please set it now: ', end='')  # noqa:E501,E713
         args.box = input().lower()
         if not args.box:
             fatal('Invalid input!')
@@ -192,7 +192,7 @@ def main():
     args.func(args)
 
 
-def init(args):
+def init(args: argparse.Namespace) -> None:
     """Create conf dir."""
     box_target = args.box_conf
     global_target = args.global_conf
@@ -231,7 +231,7 @@ def init(args):
             debug(f'exists {box_target}')
 
 
-def store(args):
+def store(args: argparse.Namespace) -> None:
     """Move file from home dir to conf dir and symlink."""
     target = os.path.normpath(args.target)
 
@@ -271,7 +271,7 @@ def store(args):
     )
 
 
-def venv(args):
+def venv(args: argparse.Namespace) -> None:
     """Manage user python venv."""
     venv_dir = args.loc
     req_glob = args.req
@@ -323,10 +323,10 @@ Add the following to your .bashrc
     export PATH="{venv_dir}/bin:$PATH"
 
 Then restart your shell and run `which python` to verify!
-    """)
+    """)  # noqa:E222
 
 
-def package(args):
+def package(args: argparse.Namespace) -> None:
     """Manage installed packages."""
     packager_classname = PACKAGE_OPTION_MAP[args.cmd]
     package_dir = os.path.join(args.box_conf, 'pkg')
@@ -340,11 +340,11 @@ def package(args):
     except NotImplementedError:
         fatal(f'Action "{args.action}" not available for "{args.cmd}"!')
     except Exception as e:
-        debug(type(e))
-        fatal(e)
+        debug(str(type(e)))
+        fatal(str(e))
 
 
-def clean(args):
+def clean(args: argparse.Namespace) -> None:
     """Remove broken symlinks."""
     for item in os.listdir(HOME_DIR):
         full_path = os.path.join(HOME_DIR, item)
@@ -354,10 +354,10 @@ def clean(args):
                 debug(f'removed {full_path}')
 
 
-def link(args):
+def link(args: argparse.Namespace) -> None:
     """Create symlinks in home dir from saved conf dir."""
     # build list of files to symlink from
-    files = []
+    files: list[tuple] = []
 
     # optionally add global files
     if args.g:
@@ -408,7 +408,7 @@ def link(args):
     print('')
 
 
-def add_files(directory: str, files: list) -> None:
+def add_files(directory: str, files: list[tuple]) -> None:
     """Build file list.
 
     Append tuples of (directory, filename) to file list.
@@ -445,22 +445,22 @@ def extension(file_path: str) -> str:
     return extension
 
 
-def debug(message):
+def debug(message: str) -> None:
     """Print debug level message."""
     print('DEBUG: %s' % message)
 
 
-def warn(message):
+def warn(message: str) -> None:
     """Print warning level message."""
     print('WARNING: %s' % message)
 
 
-def error(message):
+def error(message: str) -> None:
     """Print error level message."""
     print('ERROR: %s' % message)
 
 
-def fatal(message):
+def fatal(message: str) -> None:
     """Print fatal level message and exit."""
     print('EXIT: %s' % message)
     exit()
