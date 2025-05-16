@@ -3,15 +3,14 @@ feng-shui-py
 Automatically links home directory files to conf directory for cloud backup and generates package lists for popular managers.
 
 ```
-usage: cli.py [-h] [--conf CONF] [--env ENV] [--box BOX] {link,init,store,package,venv,clean} ...
+usage: cli.py [-h] [--conf CONF] [--env ENV] [--box BOX] {link,init,store,package,clean} ...
 
 positional arguments:
-  {link,init,store,package,venv,clean}
+  {link,init,store,package,clean}
     link                symlink files from conf storage dir to home dir
     init                initialize new conf storage dir
     store               move file from home dir to conf storage dir
     package             manage system installed packages
-    venv                manage user level python venv
     clean               remove broken symlinks in home dir
 
 options:
@@ -89,10 +88,10 @@ optional arguments:
 Manage packages installed. Metadata files will be stored in your conf directory.
 
 ```
-usage: cli.py package [-h] {brew,apt-clone,pip,npm} {backup,restore,list}
+usage: cli.py package [-h] {brew,apt-clone,pipx,npm} {backup,restore,list}
 
 positional arguments:
-  {brew,apt-clone,pip}  package management category
+  {brew,apt-clone,pipx}  package management category
   {backup,restore,list}
                         operation to perform
 
@@ -111,18 +110,3 @@ optional arguments:
   -h, --help  show this help message and exit
   -f          do not prompt on remove
 ```
-
-### Python Virtual Environment
-
-Setup a user level python virtual environment distinct from system packages.
-
-```
-usage: cli.py venv [-h] [--loc LOC] [--req REQ]
-
-options:
-  -h, --help  show this help message and exit
-  --loc LOC   where to create and access user virtual environment (default: ~/venv)
-  --req REQ   glob or filename used to match requirements files to install (default: ~/*requirements.txt)
-```
-
-:warning: This will conflict with how [pyenv](https://github.com/pyenv/pyenv) manages environments, it is recommended to not use both at the same time.

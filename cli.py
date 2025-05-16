@@ -3,16 +3,12 @@
 """Backup and restore machine configurations."""
 
 import argparse
-import glob
 import inspect
 import os
 import shutil
-import subprocess
-from venv import EnvBuilder
 
 import packagers
 
-from utils import cmd
 from utils import query_yes_no
 
 
@@ -127,26 +123,6 @@ def main() -> None:
         type=str.lower,
         help='operation to perform')
     package_subparser.set_defaults(func=package)
-
-    # sub-parser for python venv process
-    venv_subparser = subparser.add_parser(
-        'venv',
-        help='manage user level python venv',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
-    )
-    venv_subparser.add_argument(
-        '--loc',
-        type=str,
-        default=f'{HOME_DIR}/venv',
-        help='where to create and access user virtual environment'
-    )
-    venv_subparser.add_argument(
-        '--req',
-        type=str,
-        default=f'{HOME_DIR}/*requirements.txt',
-        help='glob or filename used to match requirements files to install'
-    )
-    venv_subparser.set_defaults(func=venv)
 
     # sub-parser for clean process
     clean_subparser = subparser.add_parser(
@@ -269,61 +245,6 @@ def store(args: argparse.Namespace) -> None:
             os.path.basename(target)
         )
     )
-
-
-def venv(args: argparse.Namespace) -> None:
-    """Manage user python venv."""
-    venv_dir = args.loc
-    req_glob = args.req
-
-    # warn if pyenv installed
-    try:
-        cmd('which pyenv')
-    except subprocess.CalledProcessError:
-        pass
-    else:
-        print('pyenv is installed and will conflict!\n')
-        choice = query_yes_no('proceed?', default='no')
-        if not choice:
-            exit(0)
-
-    # create venv if not exists or user wants to overwrite
-    create = True
-    if os.path.isdir(venv_dir):
-        choice = query_yes_no(
-            f'venv exists at {venv_dir}, remove it?', default='no')
-        if choice:
-            shutil.rmtree(venv_dir)
-            debug(f'removed {venv_dir}')
-        else:
-            create = False
-    if create:
-        env_builder = EnvBuilder(clear=False, with_pip=True)
-        env_builder.create(venv_dir)
-
-    # venv binaries
-    venv_pip = f'{venv_dir}/bin/pip3'
-
-    # find requirements files(s)
-    files = [req_glob] if os.path.isfile(req_glob) else glob.glob(req_glob)
-
-    # install requirements
-    for f in files:
-        cmd(f'cat {f}')
-        choice = query_yes_no(
-            'install the above packages?',
-            default='yes')
-        if choice:
-            cmd(f'{venv_pip} install -r {f}')
-
-    # print next steps
-    print(f"""
-Add the following to your .bashrc
-
-    export PATH="{venv_dir}/bin:$PATH"
-
-Then restart your shell and run `which python` to verify!
-    """)  # noqa:E222
 
 
 def package(args: argparse.Namespace) -> None:

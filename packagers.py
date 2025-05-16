@@ -84,16 +84,16 @@ class Apt(AbstractPackager):
         )
 
 
-class Pip(AbstractPackager):
-    """Manage python packages via pip."""
+class Pipx(AbstractPackager):
+    """Manage python packages via pipx."""
 
-    def __init__(self, file_dir: str, file_name: str = 'pip-freeze.txt') -> None:  # noqa:E501
-        """Set pip specific options."""
+    def __init__(self, file_dir: str, file_name: str = 'pipx.json') -> None:  # noqa:E501
+        """Set pipx specific options."""
         super().__init__(
             'cat {filepath}',
-            'pip freeze --no-python-version-warning',
-            'pip install -r {filepath}',
-            'pip --version',
+            'pipx list --include-injected --json',
+            'pipx install-all {filepath}',
+            'pipx --version',
             file_dir,
             file_name
         )
