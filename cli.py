@@ -2,14 +2,23 @@
 
 import argparse
 import inspect
+import logging
 import os
 import shutil
+import sys
 
 import packagers
 import utils
 
 HOME_DIR = os.path.expanduser("~")
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    stream=sys.stdout,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 # map package cli choice to classname
 PACKAGE_OPTION_MAP = {
@@ -132,7 +141,7 @@ def main() -> None:
         )
         args.env = input().lower()
         if not args.env:
-            fatal("Invalid input!")
+            logger.critical("Invalid input!")
     if not args.box:
         print(
             f'box not set in --box or "${default_box_varname}", please set it now: ',
@@ -140,19 +149,21 @@ def main() -> None:
         )
         args.box = input().lower()
         if not args.box:
-            fatal("Invalid input!")
+            logger.critical("Invalid input!")
 
     # format args into dirs
-    args.box_conf = os.path.join(args.conf, "boxes", args.env, args.box)
+    args.box_conf = box_dirname(args.conf, args.env, args.box)
     args.global_conf = os.path.join(args.conf, "global")
     del args.env
     del args.box
 
     # verify conf directory exists
     if not os.path.isdir(args.conf):
-        fatal(f'"{args.conf}" does not exist!')
+        logger.critical(f'"{args.conf}" does not exist!')
     if not os.path.isdir(args.box_conf) and args.command != "init":
-        fatal(f'"{args.box_conf}" does not exist! Use "init" command to create it.')
+        logger.critical(
+            f'"{args.box_conf}" does not exist! Use "init" command to create it.'
+        )
 
     # run the actual process
     if "func" not in args:
@@ -161,39 +172,47 @@ def main() -> None:
     args.func(args)
 
 
+def box_dirname(conf_dirname: str, env: str, box: str) -> str:
+    if os.path.basename(box) != box:
+        raise ValueError(f"box '{box}' is invalid")
+    if os.path.basename(env) != env:
+        raise ValueError(f"env '{env}' is invalid")
+    return os.path.join(conf_dirname, "boxes", env, box)
+
+
 def init(args: argparse.Namespace) -> None:
     box_target = args.box_conf
     global_target = args.global_conf
 
     # verify file isn't at targets
     if os.path.isfile(box_target):
-        fatal("box conf at {box_target} is a file")
+        logger.critical("box conf at {box_target} is a file")
     if os.path.isfile(global_target):
-        fatal("global conf at {global_target} is a file")
+        logger.critical("global conf at {global_target} is a file")
 
     # create global conf dir if not exists
     if not os.path.isdir(global_target):
         os.makedirs(global_target)
-        debug(f"created {global_target}")
+        logger.debug(f"created {global_target}")
     else:
-        debug(f"exists {global_target}")
+        logger.debug(f"exists {global_target}")
 
     if args.clone:
         # copy existing dir into new one
-        clone_source = os.path.join(args.conf, "boxes", args.clone[0], args.clone[1])
+        clone_source = box_dirname(args.conf, args.clone[0], args.clone[1])
         if not os.path.isdir(clone_source):
-            fatal(f'"{clone_source}" does not exist!')
+            logger.critical(f'"{clone_source}" does not exist!')
         if os.path.exists(box_target):
-            fatal(f'Cannot clone into existing location at "{box_target}"!')
+            logger.critical(f'Cannot clone into existing location at "{box_target}"!')
         shutil.copytree(clone_source, box_target)
-        debug(f"Cloned into {box_target}")
+        logger.debug(f"Cloned into {box_target}")
     else:
         # create box conf dir if not exists
         if not os.path.isdir(box_target):
             os.makedirs(box_target)
-            debug(f"created {box_target}")
+            logger.debug(f"created {box_target}")
         else:
-            debug(f"exists {box_target}")
+            logger.debug(f"exists {box_target}")
 
 
 def store(args: argparse.Namespace) -> None:
@@ -206,11 +225,11 @@ def store(args: argparse.Namespace) -> None:
 
     # validate source can be moved
     if not target.startswith(HOME_DIR):
-        fatal(f'"{target}" must be in "{HOME_DIR}"!')
+        logger.critical(f'"{target}" must be in "{HOME_DIR}"!')
     if os.path.islink(target):
-        fatal(f'"{target}" cannot be a symlink!')
+        logger.critical(f'"{target}" cannot be a symlink!')
     if not os.path.exists(target):
-        fatal(f'"{target}" does not exist!')
+        logger.critical(f'"{target}" does not exist!')
 
     # check overwrite on destination
     destination = os.path.join(destination_dir, os.path.basename(target))
@@ -234,10 +253,10 @@ def package(args: argparse.Namespace) -> None:
         if args.action != "verify":
             getattr(packager, args.action)()
     except NotImplementedError:
-        fatal(f'Action "{args.action}" not available for "{args.cmd}"!')
+        logger.critical(f'Action "{args.action}" not available for "{args.cmd}"!')
     except Exception as e:
-        debug(str(type(e)))
-        fatal(str(e))
+        logger.debug(str(type(e)))
+        logger.critical(str(e))
 
 
 def clean(args: argparse.Namespace) -> None:
@@ -246,7 +265,7 @@ def clean(args: argparse.Namespace) -> None:
         if os.path.islink(full_path) and not os.path.exists(os.readlink(full_path)):
             if args.f or utils.query_yes_no(f'unlink at "{full_path}"?'):
                 os.unlink(full_path)
-                debug(f"removed {full_path}")
+                logger.debug(f"removed {full_path}")
 
 
 def link(args: argparse.Namespace) -> None:
@@ -273,37 +292,37 @@ def link(args: argparse.Namespace) -> None:
 
         # remove file(s) existing in home dir
         if os.path.isdir(target) and not os.path.islink(target):
-            warn('skipping dir "%s"' % target)
+            logger.warn('skipping dir "%s"' % target)
             continue
         elif os.path.islink(target) and os.readlink(target) == source:
-            warn('skipping already linked "%s"' % target)
+            logger.warn('skipping already linked "%s"' % target)
             continue
         elif os.path.isfile(target) or os.path.islink(target):
             if args.f or utils.query_yes_no('remove file at "%s"?' % target):
                 # backup if file is not symlink and option is on
                 if args.b and not os.path.islink(target):
                     os.rename(target, "%s.bk" % target)
-                    debug('moved "%s"' % target)
+                    logger.debug('moved "%s"' % target)
                 else:
                     os.remove(target)
-                    debug('removed "%s"' % target)
+                    logger.debug('removed "%s"' % target)
 
             else:
-                warn('not linking "%s"' % target)
+                logger.warn('not linking "%s"' % target)
                 continue
         else:
-            debug('nothing at "%s"' % target)
+            logger.debug('nothing at "%s"' % target)
 
         # create the symlink
         os.symlink(source, target)
-        debug('created "%s" -> "%s"' % (source, target))
+        logger.debug('created "%s" -> "%s"' % (source, target))
 
     print("")
 
 
 def add_files(directory: str, files: list[tuple]) -> None:
     if not os.path.isdir(directory):
-        fatal('"%s" is not a dir' % directory)
+        logger.critical('"%s" is not a dir' % directory)
     ignore_extensions = [".swp", ".swo", ".bk"]
     files += [
         (directory, x)
@@ -315,23 +334,6 @@ def add_files(directory: str, files: list[tuple]) -> None:
 def extension(file_path: str) -> str:
     _, extension = os.path.splitext(file_path)
     return extension
-
-
-def debug(message: str) -> None:
-    print("DEBUG: %s" % message)
-
-
-def warn(message: str) -> None:
-    print("WARNING: %s" % message)
-
-
-def error(message: str) -> None:
-    print("ERROR: %s" % message)
-
-
-def fatal(message: str) -> None:
-    print("EXIT: %s" % message)
-    exit()
 
 
 if __name__ == "__main__":
