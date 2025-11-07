@@ -88,14 +88,15 @@ optional arguments:
 Manage packages installed. Metadata files will be stored in your conf directory.
 
 ```
-usage: cli.py package [-h] {brew,apt-clone,pipx,npm} {backup,restore,list}
+usage: cli.py package [-h] {apt,brew,crontab,git,npm,pipx} {backup,info,restore,verify}
 
 positional arguments:
-  {brew,apt-clone,pipx}  package management category
-  {backup,restore,list}
+  {apt,brew,crontab,git,npm,pipx}
+                        package management category
+  {backup,info,restore,verify}
                         operation to perform
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
 ```
 
