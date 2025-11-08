@@ -154,8 +154,6 @@ def main() -> None:
     # format args into dirs
     args.box_conf = box_dirname(args.conf, args.env, args.box)
     args.global_conf = os.path.join(args.conf, "global")
-    del args.env
-    del args.box
 
     # verify conf directory exists
     if not os.path.isdir(args.conf):
@@ -254,9 +252,18 @@ def package(args: argparse.Namespace) -> None:
             getattr(packager, args.action)()
     except NotImplementedError:
         logger.critical(f'Action "{args.action}" not available for "{args.cmd}"!')
+        exit(1)
+    except packagers.exceptions.SudoException:
+        print(f"""
+Access denied, may need to try the following command as root...
+
+sudo {os.path.abspath(sys.argv[0])} --env {args.env} --box {args.box} {args.command} {args.cmd} {args.action}
+        """)
+        exit(13)
     except Exception as e:
         logger.debug(str(type(e)))
         logger.critical(str(e))
+        exit(1)
 
 
 def clean(args: argparse.Namespace) -> None:
