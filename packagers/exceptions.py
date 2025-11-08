@@ -1,0 +1,3 @@
+
+class SudoException(Exception):
+    pass
