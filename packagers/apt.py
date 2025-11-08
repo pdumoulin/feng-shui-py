@@ -32,7 +32,7 @@ class Apt(AbstractPackager):
             ]
             with open(self.filepath, "w") as f:
                 f.write(os.linesep.join(manual))
-                self.info()
+            self.info()
         except apt.cache.LockFailedException:
             raise SudoException()
 
