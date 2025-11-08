@@ -5,7 +5,7 @@ from packagers import AbstractPackager
 from packagers.exceptions import SudoException
 
 try:
-    import apt
+    import apt  # type: ignore
 except ModuleNotFoundError:
     pass
 

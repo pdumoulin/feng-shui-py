@@ -258,7 +258,7 @@ def package(args: argparse.Namespace) -> None:
 Access denied, may need to try the following command as root...
 
 sudo {os.path.abspath(sys.argv[0])} --env {args.env} --box {args.box} {args.command} {args.cmd} {args.action}
-        """)
+        """)  # noqa: E501
         exit(13)
     except Exception as e:
         logger.debug(str(type(e)))
