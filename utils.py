@@ -7,6 +7,7 @@ def cmd(
     raw_command: str,
     stdout: typing.Any = subprocess.PIPE,
     stderr: typing.Any = subprocess.PIPE,
+    input: str | None = None,
     verbose: bool = True,
 ) -> subprocess.CompletedProcess:
     def vprint(string: str) -> None:
@@ -20,6 +21,7 @@ def cmd(
             command,
             stdout=stdout,
             stderr=stderr,
+            input=input,
             encoding="utf-8",
             check=True,  # exception on non-zero code
         )

@@ -141,7 +141,7 @@ def main() -> None:
         )
         args.env = input().lower()
         if not args.env:
-            logger.critical("Invalid input!")
+            fatal("Invalid input!")
     if not args.box:
         print(
             f'box not set in --box or "${default_box_varname}", please set it now: ',
@@ -149,7 +149,7 @@ def main() -> None:
         )
         args.box = input().lower()
         if not args.box:
-            logger.critical("Invalid input!")
+            fatal("Invalid input!")
 
     # format args into dirs
     args.box_conf = box_dirname(args.conf, args.env, args.box)
@@ -157,9 +157,9 @@ def main() -> None:
 
     # verify conf directory exists
     if not os.path.isdir(args.conf):
-        logger.critical(f'"{args.conf}" does not exist!')
+        fatal(f'"{args.conf}" does not exist!')
     if not os.path.isdir(args.box_conf) and args.command != "init":
-        logger.critical(
+        fatal(
             f'"{args.box_conf}" does not exist! Use "init" command to create it.'
         )
 
@@ -184,9 +184,9 @@ def init(args: argparse.Namespace) -> None:
 
     # verify file isn't at targets
     if os.path.isfile(box_target):
-        logger.critical("box conf at {box_target} is a file")
+        fatal("box conf at {box_target} is a file")
     if os.path.isfile(global_target):
-        logger.critical("global conf at {global_target} is a file")
+        fatal("global conf at {global_target} is a file")
 
     # create global conf dir if not exists
     if not os.path.isdir(global_target):
@@ -199,9 +199,9 @@ def init(args: argparse.Namespace) -> None:
         # copy existing dir into new one
         clone_source = box_dirname(args.conf, args.clone[0], args.clone[1])
         if not os.path.isdir(clone_source):
-            logger.critical(f'"{clone_source}" does not exist!')
+            fatal(f'"{clone_source}" does not exist!')
         if os.path.exists(box_target):
-            logger.critical(f'Cannot clone into existing location at "{box_target}"!')
+            fatal(f'Cannot clone into existing location at "{box_target}"!')
         shutil.copytree(clone_source, box_target)
         logger.debug(f"Cloned into {box_target}")
     else:
@@ -223,11 +223,11 @@ def store(args: argparse.Namespace) -> None:
 
     # validate source can be moved
     if not target.startswith(HOME_DIR):
-        logger.critical(f'"{target}" must be in "{HOME_DIR}"!')
+        fatal(f'"{target}" must be in "{HOME_DIR}"!')
     if os.path.islink(target):
-        logger.critical(f'"{target}" cannot be a symlink!')
+        fatal(f'"{target}" cannot be a symlink!')
     if not os.path.exists(target):
-        logger.critical(f'"{target}" does not exist!')
+        fatal(f'"{target}" does not exist!')
 
     # check overwrite on destination
     destination = os.path.join(destination_dir, os.path.basename(target))
@@ -251,8 +251,7 @@ def package(args: argparse.Namespace) -> None:
         if args.action != "verify":
             getattr(packager, args.action)()
     except NotImplementedError:
-        logger.critical(f'Action "{args.action}" not available for "{args.cmd}"!')
-        exit(1)
+        fatal(f'Action "{args.action}" not available for "{args.cmd}"!')
     except packagers.exceptions.SudoException:
         print(f"""
 Access denied, may need to try the following command as root...
@@ -262,8 +261,7 @@ sudo {os.path.abspath(sys.argv[0])} --env {args.env} --box {args.box} {args.comm
         exit(13)
     except Exception as e:
         logger.debug(str(type(e)))
-        logger.critical(str(e))
-        exit(1)
+        fatal(str(e))
 
 
 def clean(args: argparse.Namespace) -> None:
@@ -329,7 +327,7 @@ def link(args: argparse.Namespace) -> None:
 
 def add_files(directory: str, files: list[tuple]) -> None:
     if not os.path.isdir(directory):
-        logger.critical('"%s" is not a dir' % directory)
+        fatal('"%s" is not a dir' % directory)
     ignore_extensions = [".swp", ".swo", ".bk"]
     files += [
         (directory, x)
@@ -341,6 +339,10 @@ def add_files(directory: str, files: list[tuple]) -> None:
 def extension(file_path: str) -> str:
     _, extension = os.path.splitext(file_path)
     return extension
+
+def fatal(message: str, code: int = 1) -> None:
+    logger.critical(message)
+    exit(code)
 
 
 if __name__ == "__main__":
