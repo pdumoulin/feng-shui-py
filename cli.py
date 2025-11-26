@@ -159,9 +159,7 @@ def main() -> None:
     if not os.path.isdir(args.conf):
         fatal(f'"{args.conf}" does not exist!')
     if not os.path.isdir(args.box_conf) and args.command != "init":
-        fatal(
-            f'"{args.box_conf}" does not exist! Use "init" command to create it.'
-        )
+        fatal(f'"{args.box_conf}" does not exist! Use "init" command to create it.')
 
     # run the actual process
     if "func" not in args:
@@ -339,6 +337,7 @@ def add_files(directory: str, files: list[tuple]) -> None:
 def extension(file_path: str) -> str:
     _, extension = os.path.splitext(file_path)
     return extension
+
 
 def fatal(message: str, code: int = 1) -> None:
     logger.critical(message)
