@@ -295,10 +295,10 @@ def link(args: argparse.Namespace) -> None:
 
         # remove file(s) existing in home dir
         if os.path.isdir(target) and not os.path.islink(target):
-            logger.warn('skipping dir "%s"' % target)
+            logger.warning('skipping dir "%s"' % target)
             continue
         elif os.path.islink(target) and os.readlink(target) == source:
-            logger.warn('skipping already linked "%s"' % target)
+            logger.warning('skipping already linked "%s"' % target)
             continue
         elif os.path.isfile(target) or os.path.islink(target):
             if args.f or utils.query_yes_no('remove file at "%s"?' % target):
@@ -311,7 +311,7 @@ def link(args: argparse.Namespace) -> None:
                     logger.debug('removed "%s"' % target)
 
             else:
-                logger.warn('not linking "%s"' % target)
+                logger.warning('not linking "%s"' % target)
                 continue
         else:
             logger.debug('nothing at "%s"' % target)
